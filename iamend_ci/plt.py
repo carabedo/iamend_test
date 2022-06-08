@@ -1,10 +1,6 @@
 """ Modulo con funciones para graficar en matplotlin o plotly"""	
-import iamend_ci.theo as theo															
-import os
-import csv
-import numpy
+import iamend_ci.theo as theo												
 import numpy as np
-import cmath
 # import plotly.graph_objs as go
 # import plotly
 # plotly.offline.init_notebook_mode(connected=True)
@@ -24,12 +20,7 @@ import matplotlib.pyplot as plt
 
 ## matplotlib
 
-
-
-
-
-
-def im(exp,n,figsize=[8,6]):
+def im(dzcorrnorm,f,name,figsize=[8,6]):
     """im( frecuencia, datacorr, n)
     Grafica la parte imaginaria de la impedancia corregida y normalizada.
     Parameters
@@ -38,36 +29,34 @@ def im(exp,n,figsize=[8,6]):
     datacorr : array_like, matriz con las mediciones
     n : int, indice de la medicion 
     """    
-    dz=exp[n]['dzcorrnorm']
-    f=exp[n]['f']
-    name=exp[n]['name']
+
     plt.figure(figsize=figsize)
-    plt.semilogx(f,dz.imag,'ok',markersize=3,markerfacecolor='none')
+    plt.semilogx(f,dzcorrnorm.imag,'ok',markersize=3,markerfacecolor='none')
     plt.ylabel('$Im(\Delta Z)/X_0$')
     plt.xlabel('Frecuencia [Hz]')
     plt.title(name)
     plt.grid(True, which="both")
     
     
-def re(exp,n,figsize=[8,6]):
-    """re(frecuencia, datacorr, n)
-    Grafica la parte real de la impedancia corregida y normalizada.
+def re(dzcorrnorm,f,name,figsize=[8,6]):
+    """im( frecuencia, datacorr, n)
+    Grafica la parte imaginaria de la impedancia corregida y normalizada.
     Parameters
     ----------
     f : array_like, vector con las frecuencias
     datacorr : array_like, matriz con las mediciones
     n : int, indice de la medicion 
     """    
-    dz=exp[n]['dzcorrnorm']
-    f=exp[n]['f']
-    name=exp[n]['name']
+
     plt.figure(figsize=figsize)
-    plt.semilogx(f,dz.real,'ok',markersize=3,markerfacecolor='none')
-    plt.ylabel('$Re(\Delta Z)/X_0$')
+    plt.semilogx(f,dzcorrnorm.real,'ok',markersize=3,markerfacecolor='none')
+    plt.ylabel('$Im(\Delta Z)/X_0$')
     plt.xlabel('Frecuencia [Hz]')
     plt.title(name)
     plt.grid(True, which="both")
         
+
+
 
 
 def mu(data,acero,savefile=0):

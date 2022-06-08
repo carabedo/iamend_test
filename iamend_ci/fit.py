@@ -4,10 +4,9 @@ import numpy as np
 from scipy import optimize
 import plotly.graph_objs as go
 import matplotlib.pyplot as plt
-
 from plotly.subplots import make_subplots
 
-def z1(exp,n):
+def z1(f,bo,dzucorrnorm,dpatron,sigma,name):
     
     """z1 (frecuencia, bobina, datacorr, n, dpatron,sigma, mur)
     Ajuste del lift-off
@@ -22,13 +21,6 @@ def z1(exp,n):
     sigma : float, conductividad muestra
     mur: float, permeabilidad muestra
     """    
-
-    f=exp[n]['f']
-    bo=exp[n]['bo']
-    dzucorrnorm=exp[n]['dzcorrnorm']
-    dpatron=exp[n]['espesor']
-    sigma=exp[n]['sigma']
-    name=exp[n]['name']
     mur=1
 
     def funz1(x,b):
@@ -90,15 +82,8 @@ def imlogfit(f,data,para_eff,name,savefile=0):
 
 
 
-
-
-
-
-
-
-
-def mu(exp,n, z1eff):
-    """mu (frecuencia, bobina, datacorr, n, dpatron,sigma, mur)
+def mu(f,bo_eff,dzucorrnorm,dpatron,sigma, name):
+    """mu (frecuencia, bobina, datacorr, dpatron,sigma, name, z1eff)
     Ajuste de la permeabilidad
 
     Parameters
@@ -112,18 +97,11 @@ def mu(exp,n, z1eff):
     sigma : float, conductividad muestra
     z1eff: float, lift-off efectivo
     """    
-    f=exp[n]['f']
-    bo=exp[n]['bo']
-    dzucorrnorm=exp[n]['dzcorrnorm']
-    dpatron=exp[n]['espesor']
-    sigma=exp[n]['sigma']
-    name=exp[n]['name']
+
     def funmu(x,a):
-        bob=bo[:]
-        bob[4]=z1eff
-        return theo.dzD(x,bob,sigma,dpatron,a,1500).imag/x0
+        return theo.dzD(x,bo_eff,sigma,dpatron,a,1500).imag/x0
     #[f,z0,dzucorr,w]
-    l0=bo[-1]    
+    l0=bo_eff[-1]    
     w=2*np.pi*f
     x0=w*l0
       
@@ -134,7 +112,7 @@ def mu(exp,n, z1eff):
 
     mur=fpar[0]
 
-    yteo=theo.dzD(f,bo,sigma,dpatron,mur,1500)
+    yteo=theo.dzD(f,bo_eff,sigma,dpatron,mur,1500)
     yteo=yteo.imag/x0
     
 
