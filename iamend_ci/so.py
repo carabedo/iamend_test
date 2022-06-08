@@ -17,24 +17,6 @@ import random
 
 ###### OLD
 	
-def zload(): 
-    root = tk.Tk()
-    root.lift()
-    root.attributes('-topmost',True)
-    root.after_idle(root.attributes,'-topmost',False)
-    folder_path = filedialog.askdirectory()
-    files=list()
-    print(folder_path)
-    for (dirpath, dirnames, filenames) in os.walk(folder_path):
-        
-        for i,j in enumerate(filenames):
-            files.extend([dirpath + '\\'+j])
-            print(i,j)
-        break
-    
-    root.withdraw()
-    return (files,filenames)
-
 def csv2data(files,separador):
     
     

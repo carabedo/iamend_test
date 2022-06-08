@@ -7,27 +7,35 @@ import iamend_ci.ax as ax
 import os
 import pandas as pd
 import numpy as np
+#esto sirve para no tener daramas con el path en windows/unix
+from pathlib import Path
+
+
 
 class exp():
     def __init__(self,path):
         self.path=path
         try:
             infopath=[x for x in os.listdir(path) if 'info' in x][0]
+            data_folder = Path(path)
+            infofullpath=data_folder / infopath
+            info=pd.read_csv(infofullpath)    
+            self.info=info
+            self.files=info.iloc[:,0]
+            self.sigmas=info.iloc[:,1]
+            self.espesores=info.iloc[:,2]
+            if len(info.bobina.unique()) == 1:
+                self.bobina=info.bobina[0]
+                self.coil=bo.data[self.bobina][:]
+            else:
+                print('Mas de una bobina, separe las mediciones en carpetas para cada bobina.')
+            self.data=so.load(self.path)
+            self.f=so.getf(self.data)
+            self.w=2*np.pi*self.f
         except:
             print('Falta archivo info, con nombres de archivos, conductividades, espesores y bobina utilizada')
-        info=pd.read_csv(path+ '\\' +infopath)    
-        self.info=info
-        self.files=info.iloc[:,0]
-        self.sigmas=info.iloc[:,1]
-        self.espesores=info.iloc[:,2]
-        if len(info.bobina.unique()) == 1:
-            self.bobina=info.bobina[0]
-        else:
-            print('Mas de una bobina, separe las mediciones en carpetas para cada bobina.')
-        self.data=so.load(self.path)
-        self.f=so.getf(self.data)
-        self.w=2*np.pi*self.f
-        self.coil=bo.data[self.bobina][:]
+
+ 
 
     def normcorr(self):
         self.dzcorrnorm=so.corr(self.f,self.coil,[self.data],Vzu='all') 
