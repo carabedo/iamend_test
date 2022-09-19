@@ -34,12 +34,12 @@ def l0(bo,lmax):
 def dzHF(f,bo,sigma,mur,lmax):
     """ Calculo de impedancia en aire (3.52) im(dz) para una placa de espesor infinito"""
     dzhf=list()
-    mu0=4*3.14*1e-7;
-    r1=bo[0];
-    r2=bo[1];
-    dh=bo[2];
-    N=bo[3];
-    z1=bo[4];
+    mu0=4*3.14*1e-7
+    r1=bo[0]
+    r2=bo[1]
+    dh=bo[2]
+    N=bo[3]
+    z1=bo[4]
     l0=bo[5]
     aint=(1j*numpy.pi*(2*numpy.pi*f)*mu0*N**2)/(((r2-r1)*dh)**2)
     for i in range(0,len(f)):
@@ -52,12 +52,12 @@ def dzHF(f,bo,sigma,mur,lmax):
 def dzD(f,bo,sigma,d,mur,lmax):
     """ Calculo de impedancia en aire (3.50) im(dz) para una placa de espesor 'd' """
     dzD=list()
-    mu0=4*3.14*1e-7;
-    r1=bo[0];
-    r2=bo[1];
-    dh=bo[2];
-    N=bo[3];
-    z1=bo[4];
+    mu0=4*3.14*1e-7
+    r1=bo[0]
+    r2=bo[1]
+    dh=bo[2]
+    N=bo[3]
+    z1=bo[4]
     l0=bo[5]
     aint=(1j*numpy.pi*(2*numpy.pi*f)*mu0*N**2)/(((r2-r1)*dh)**2)
     
@@ -76,33 +76,27 @@ def dz2(f,bo,sigmas,d,mur1,mur2,lmax):
     """ Calculo de impedancia en aire (3.50) im(dz) para dos layers """
 
     dzD=list()
-    mu0=4*3.14*1e-7;
-    r1=bo[0];
-    r2=bo[1];
-    dh=bo[2];
-    N=bo[3];
-    z1=bo[4];
+    mu0=4*3.14*1e-7
+    r1=bo[0]
+    r2=bo[1]
+    dh=bo[2]
+    N=bo[3]
+    z1=bo[4]
     l0=bo[5]
     aint=(1j*numpy.pi*(2*numpy.pi*f)*mu0*N**2)/(((r2-r1)*dh)**2)
     for i in range(0,len(f)):
         dzD.append(cquad(lambda k: sig3(k,sigmas,sigmas,f[i],d,mur1,mur2)*(ji(k,r1,r2)*expz(k,z1,z1+dh))**2,0,lmax))
     return aint*numpy.array(dzD)
 
-def jhf(r,z,I,*args):
+def jhf(r,z,I,f,bo,sigma,mur,lmax=1000):
     """ Calculo de densidad corriente sobre una placa semi-infinita """
 
-    f=args[0]
-    bo=args[1]
-    sigma=args[2]
-    mur=args[3]
-    lmax=args[4]
-    jhf=list()
-    mu0=4*numpy.pi*1e-7;
-    r1=bo[0];
-    r2=bo[1];
-    dh=bo[2];
-    N=bo[3];
-    z1=bo[4];
+    mu0=4*numpy.pi*1e-7
+    r1=bo[0]
+    r2=bo[1]
+    dh=bo[2]
+    N=bo[3]
+    z1=bo[4]
     l0=bo[5]
     i0=N*I/((r2-r1)*dh)
     aint=1j*2*numpy.pi*f*sigma*mu0*i0
