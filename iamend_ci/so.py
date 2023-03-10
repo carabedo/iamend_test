@@ -1,17 +1,16 @@
-""" Modulo para el procesamiento de los archivos CVS del solartron"""
 import os
+import pandas as pd
 import csv
+import plotly.express as px
 import numpy as np
 
-
-### nuevo v2
-
 def read(file, separador):
-
+    # lee archivo csv del solatron
+    # se puede definir el separador
     z=list()
     with open(file, 'r') as csvfile:
         spam = csv.reader(csvfile, delimiter=separador)
-
+        #lineas del header
         next(spam)
         next(spam)
         next(spam)
@@ -19,63 +18,110 @@ def read(file, separador):
 
         for row in spam:
             z.append(row)
+    df=pd.DataFrame(z)
+    df=df.iloc[:,[0,1,4,12,13]]
+    df.columns=['indice','repeticion','f','real','imag']
+    df=df.astype(float)
+    df.indice=df.indice.astype('int')
+    df.repeticion=df.repeticion.astype('int')
+    return df
 
-    f=list()
-    rez=list()
-    imz=list()
-    n=list()
-    i=list()
 
-    for x in range(len(z)):
-        f.append(float(z[x][4]))
-        rez.append(float(z[x][12]))
-        imz.append(float(z[x][13]))
-        n.append(int(z[x][0]))
-        i.append(int(z[x][1]))
+class DataFrameCI(pd.DataFrame):
+    # construyo esta clase para extender la funcionalidad 
+    # del dataframe de pandas, le agrego la posibilidad
+    # de graficar las 11 mediciones que se realizan sobre 
+    # cada muestra
+    def __init__(self,filename,bobina,*args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # solo me deja agregar atributos que no sean listas.
+        self.filename=filename
+        self.l0=bobina['L0']
+    def impx(self):
+        self['idznorm']=self['Impedance Imaginary (Ohms)']/(self['2*pi*f']*self.l0)
+        self['Sweep Number']=self['Sweep Number'].astype(float).astype(int)
+        return px.line(self, x='Frequency (Hz)',y='idznorm',color='Sweep Number',log_x=True)
 
-    f = np.asarray(f)
-    w=2*np.pi*f
-    rez=np.asarray(rez)
-    imz=np.asarray(imz)
-    n=np.asarray(n)
-    i=np.asarray(i)
-    out=list([n,i,f, rez,imz, w])
-    out=np.array(out)
-    return(out)
-
-def load(path):
+def load(path,bobina,separador=';'):
     """ carga archivos en la carpeta actual, todos deben pertenecer a un mismo experimento, mismas frecuencias y misma cantidad de repeticiones, se le puede asginar la direccion en disco de la carpeta a la variable path (tener cuidado con los //), si path=0 abre una ventana de windows para elegirla manualmente
     --------------------------------------------------------------------------------------
     devuelve una lista: 
-        data[0] lista de los datos de cada archivo, cada indice es una matriz con los datos crudos de cada archivo
+        data: lista de los df de cada archivo, cada indice es una matriz con los datos crudos de cada archivo
         
-        data[1] lista con los nombres de los archivos        
+        
     """    
     
     folder_path = path
-    files=list()
+    filepaths=[]
     for (dirpath, dirnames, filenames) in os.walk(folder_path):
         filenames.sort()
         for i,j in enumerate(filenames):
-            files.extend([dirpath + '/'+j])
+            filepaths.extend([dirpath + '/'+j])
         break
-
-    files=[files,filenames]
     data=list()
-    for file in files[0]:
-        if 'info' not in file:
-            data.append(read(file,';')) 
-     
+    for k,filepath in enumerate(filepaths):
+        if ('info' not in filepath) & ('csv' in filepath):
+            df=read(filepath,separador)
+            dfci=DataFrameCI(filename=filenames[k],bobina=bobina,data=df)
+            data.append(dfci) 
     return data  
 
 
+def getf(exp):
+    '''chequear que todos los archivos del experimento tengan los mismos
+    valores de frecuencia'''
+    lista_dfs_ci=exp.data
+    lista_fs=[x['f'].values for x in lista_dfs_ci]
+    if (np.array(lista_fs)-np.array(lista_fs[0])).sum().sum()==0:
+        return np.sort(np.array(list(set(lista_fs[0]))))
+    else:
+        print('Inconsistencia en los archivos para el rango de frecuencias.')
 
-def getf(data):
-    """ obtiene el vector de frecuencias de los datos"""
-    return(data[0][2][:int(data[0][0][-1]/data[0][1][-1])])
-	
 
 
+def corrnorm(exp,index_file_aire):
+    """ corrige y normaliza los datos, toma como input el vector de frecuencias, la info de la bobina y los datos
+        devuelve una lista de arrays, cada array es la impedancia compleja corregida y normalizada para cada frecuencia, parte real y parte imaginaria
+        para recuperar la parte real  (.real) e imaginaria (.imag)
+        
+        z=re+i*2pi*f*l0
+    """ 
+    lista_z_mean,data_std=stats(exp)
+    w=np.pi*2*exp.f
+    
+    z0=exp.bobina['R0']+1j*w*exp.bobina['L0']
+    x0=w*exp.bobina['L0']  
+
+    za_mean_aire=lista_z_mean[index_file_aire]
+    datacorr=[]
+    for m,z_mean in enumerate(lista_z_mean):
+        if m != index_file_aire:
+            print(m)
+            zu=z_mean
+            dzucorr=((1/(1/zu - 1/za_mean_aire + 1/z0))-z0  )				
+            datacorr.append(dzucorr/x0)    
+    return datacorr
+
+def split_train_test(exp):
+    pass
+
+
+def stats(exp):
+    ''' excluyendo la primer repeticion para cada muestra devuelve lista de valores medios por f y sus desvios'''
+    data_mean=[]
+    data_std=[]
+    for m,datamuestra in enumerate(exp.data):
+        #excluimos la primer repeticion
+        real_mean=exp.data[0][exp.data[0].repeticion != 0 ].groupby('f')['real'].mean().values
+        imag_mean=exp.data[0][exp.data[0].repeticion != 0 ].groupby('f')['imag'].mean().values
+        real_std=exp.data[0][exp.data[0].repeticion != 0 ].groupby('f')['real'].std().values
+        imag_std=exp.data[0][exp.data[0].repeticion != 0 ].groupby('f')['imag'].std().values
+        data_mean.append(real_mean+1j*imag_mean)
+        data_std.append(real_std+1j*imag_std)
+    return data_mean,data_std
+
+
+###### LEGACY
 
 def corr(f,bo,dataraw,Vzu='all'):
     """ corrige y normaliza los datos, toma como input el vector de frecuencias, la info de la bobina y los datos
@@ -108,26 +154,3 @@ def corr(f,bo,dataraw,Vzu='all'):
             datacorr.append(dzucorr/x0)                
     ret=list(np.array(datacorr))
     return(ret)
-
-def stats(data):
-    dataz3=data[0]
-    DATA=[]
-    for n,x in enumerate(dataz3):
-        ni=int(x[1][-1])
-        nf=int(int(x[0][-1])/ni)
-        X=np.reshape(x[4],(ni,nf))
-        R=np.reshape(x[3],(ni,nf))
-        
-        R=np.array(R[1:,:])
-        X=np.array(X[1:,:])
-        Xm=np.mean(X,0)
-        Xsd=np.std(X,0)
-        Rm=np.mean(R,0)
-        Rsd=np.std(R,0)
-        
-        DATA.append([Rm+1j*Xm,Rsd+1j*Xsd])
-        
-    return(DATA)      
-
-
-     
