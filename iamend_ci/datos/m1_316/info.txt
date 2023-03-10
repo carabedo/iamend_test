@@ -1,0 +1,12 @@
+archivo,conductividad,espesor,bobina
+Exp_316_Aire.csv,0,0,m1
+Exp_316_M01.csv,1201980,2.3022,m1
+Exp_316_M02.csv,1228240,2.323,m1
+Exp_316_M03.csv,1263840,2.36,m1
+Exp_316_M04.csv,1276660,2.3428,m1
+Exp_316_M05.csv,1279890,2.286,m1
+Exp_316_M06.csv,1328030,2.333,m1
+Exp_316_M07.csv,1356150,2.3136,m1
+Exp_316_M08.csv,1340660,2.2812,m1
+Exp_316_M09.csv,1307190,2.3268,m1
+Exp_316_patron.csv,0,0,m1
