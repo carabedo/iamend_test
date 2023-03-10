@@ -68,10 +68,15 @@ def load(path,bobina,separador=';'):
 
 
 def getf(exp):
-    '''chequear que todos los archivos del experimento tengan los mismos
+    '''encuentra y chequea que todos los archivos del experimento tengan los mismos
     valores de frecuencia'''
-    lista_dfs_ci=exp.data
-    lista_fs=[x['f'].values for x in lista_dfs_ci]
+
+    if len(set([x.repeticion.max() for x in exp.data])) > 1:
+        print('Inconsistencia en los archivos en la cantidad de repeticiones')
+        
+    
+    lista_fs=[x[x['repeticion']==1]['f'] for x in exp.data ]
+    
     if (np.array(lista_fs)-np.array(lista_fs[0])).sum().sum()==0:
         return np.sort(np.array(list(set(lista_fs[0]))))
     else:
@@ -92,15 +97,14 @@ def corrnorm(exp,index_file_aire):
     z0=exp.bobina['R0']+1j*w*exp.bobina['L0']
     x0=w*exp.bobina['L0']  
 
-    za_mean_aire=lista_z_mean[index_file_aire]
-    datacorr=[]
+    za=lista_z_mean[index_file_aire]
+    datacorrnorm={}
     for m,z_mean in enumerate(lista_z_mean):
         if m != index_file_aire:
-            print(m)
             zu=z_mean
-            dzucorr=((1/(1/zu - 1/za_mean_aire + 1/z0))-z0  )				
-            datacorr.append(dzucorr/x0)    
-    return datacorr
+            dzucorr=((1/(1/zu - 1/za+ 1/z0))-z0  )				
+            datacorrnorm[str(m)]=dzucorr/x0
+    return datacorrnorm
 
 def split_train_test(exp):
     pass
@@ -110,14 +114,18 @@ def stats(exp):
     ''' excluyendo la primer repeticion para cada muestra devuelve lista de valores medios por f y sus desvios'''
     data_mean=[]
     data_std=[]
-    for m,datamuestra in enumerate(exp.data):
+
+    for m,datamuestra_m in enumerate(exp.data):
         #excluimos la primer repeticion
-        real_mean=exp.data[0][exp.data[0].repeticion != 0 ].groupby('f')['real'].mean().values
-        imag_mean=exp.data[0][exp.data[0].repeticion != 0 ].groupby('f')['imag'].mean().values
-        real_std=exp.data[0][exp.data[0].repeticion != 0 ].groupby('f')['real'].std().values
-        imag_std=exp.data[0][exp.data[0].repeticion != 0 ].groupby('f')['imag'].std().values
+
+        real_mean=datamuestra_m[datamuestra_m.repeticion != 0 ].groupby('f')['real'].mean().values
+        imag_mean=datamuestra_m[datamuestra_m.repeticion != 0 ].groupby('f')['imag'].mean().values
+        real_std=datamuestra_m[datamuestra_m.repeticion != 0 ].groupby('f')['real'].std().values
+        imag_std=datamuestra_m[datamuestra_m.repeticion != 0 ].groupby('f')['imag'].std().values
+
         data_mean.append(real_mean+1j*imag_mean)
         data_std.append(real_std+1j*imag_std)
+
     return data_mean,data_std
 
 

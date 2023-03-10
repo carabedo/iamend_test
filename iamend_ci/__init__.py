@@ -42,8 +42,11 @@ class exp():
             self.sigmas=info.iloc[:,1]
             self.espesores=info.iloc[:,2]
 
-            if len(info.bobina.unique()) == 1:             
-                self.bobina=bo.data_dicts[info.bobina[0]]     
+            if len(info.bobina.unique()) == 1: 
+                try:            
+                    self.bobina=bo.data_dicts[info.bobina[0]]     
+                except:
+                    print('No se encontraron datos de la bobina: ', info.bobina[0])
                 self.coil=bo.data[info.bobina[0]]   
             else:
                 print('Mas de una bobina, separe las mediciones en carpetas para cada bobina.')
@@ -77,12 +80,23 @@ class exp():
         '''
         Metodo que corrije las mediciones utilizando el benchmark harrison(xxxx)
         '''
-        index_file_aire=self.files.index[self.files.str.lower().str.contains('aire')].values[0]
-
-        # exp data dzcorrnorm
-        self.dzcorrnorm=so.corrnorm(self,index_file_aire) 
-        print('Normalizando y corrigiendo con los datos: ',self.files[index_file_aire])
-
+        try:
+            index_file_aire=self.files.index[self.files.str.lower().str.contains('aire')].values[0]
+            self.index_aire=index_file_aire
+            self.file_aire=self.files[index_file_aire]
+            # diccionario con las variaciones de impedancias
+            # corregidas y normalizadas (re + 1j imag)
+            dict_dzcorrnorm=so.corrnorm(self,index_file_aire)
+            df=pd.DataFrame(dict_dzcorrnorm)
+            df['f']=self.f
+            dfdz=pd.melt(df,id_vars=df.columns[-1], var_name='muestra',value_name='dzcorrnorm')
+            dfdz['imag']=np.imag(dfdz['dzcorrnorm'])
+            dfdz['real']=np.real(dfdz['dzcorrnorm'])
+            dfdz['muestra']=dfdz['muestra'].astype(int).map(pd.Series(self.files))
+            dfdz['muestra']=dfdz['muestra'].apply(lambda x: x.split('_')[-1].split('.')[0])
+            self.dznorm=dfdz
+        except:
+            print('Falta el archivo con la medicion de la impedancia en aire.')
         # self.dzcorrnorm=so.corr(self.f,self.coil,[self.data],Vzu='all') 
         # df dzcorrnorm
 
