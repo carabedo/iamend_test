@@ -28,6 +28,27 @@ class DataFrameCI(pd.DataFrame):
         self['Sweep Number']=self['Sweep Number'].astype(float).astype(int)
         return px.line(self, x='Frequency (Hz)',y='idznorm',color='Sweep Number',log_x=True)
 
+def get_id(x):
+    if 'aire'in x.lower():
+        return 'aire'
+    elif 'm' in x.lower():
+        return '_'.join(x.split('.')[0].split('_')[-2:])
+    elif 'p' in x.lower():
+        return '_'.join(x.split('.')[0].split('_')[-1:])
+    else:
+        return 'No se reconoce el nombre del archivo.'
+
+def get_sigma(x,muestras):
+    try:
+        return muestras[muestras.nombre==x].conductividad.values[0]
+    except:   
+        return 0 
+def get_esp(x,muestras):
+    try:
+        return muestras[muestras.nombre==x].espesor.values[0]*10e-3
+    except:   
+        return 0         
+    
 class exp():
     def __init__(self,path):
         self.path=path
@@ -41,7 +62,11 @@ class exp():
             self.files=info.iloc[:,0]
             self.sigmas=info.iloc[:,1]
             self.espesores=info.iloc[:,2]
-
+            self.info['muestras']=self.info.archivo.apply(lambda x: get_id(x))
+            #lo haria URL
+            muestras=pd.read_csv('./iamend_ci/muestras.csv')
+            self.info.conductividad=self.info.muestras.apply(lambda x: get_sigma(x,muestras))
+            self.info.espesor=self.info.muestras.apply(lambda x: get_esp(x,muestras))
             if len(info.bobina.unique()) == 1: 
                 try:            
                     self.bobina=bo.data_dicts[info.bobina[0]]     
@@ -68,6 +93,8 @@ class exp():
             for i,df_ci in enumerate(self.data):
 
                 setattr(self,'df'+ str(i),df_ci)
+
+            self.normcorr()
 
         except Exception as e:
             print(e)
@@ -133,22 +160,28 @@ class exp():
 
     def fitpatron(self):
         try:
-            pathpatron=[x for x in self.files if 'patron' in x][0]
-            self.path_patron=pathpatron
-            # -1 por q el aire no esta en dzcorrnorm
-            index=self.files[self.files == pathpatron].index[0]
-            z1eff,figz1fit=fit.z1(self.f,self.coil,self.dzcorrnorm[index-1],self.espesores[index],self.sigmas[index],self.files[index])
+            indice_patron=self.info[self.info.muestras.str.startswith('P')].iloc[0].name
+            dzcorrnorm=self.dznorm[self.dznorm.muestra == self.info.iloc[indice_patron].muestras].dzcorrnorm.values
+            esp=self.info.espesor.iloc[indice_patron]
+            sigma=self.info.conductividad.iloc[indice_patron]
+            z1eff,figz1fit=fit.z1(self.f,self.coil,dzcorrnorm,esp,sigma,self.files[indice_patron])
             self.z1eff=z1eff[0]
             self.coil[4]=self.z1eff
-
         except:
-            print('Corrija y normalice los datos usando .normcorr()')               
-        return 
+            print('No se encuentra medicion sobre el patron, defina z1eff manualmente')               
+    
 
     def fitmues(self):
         mues=[]
         muesfigs=[]
+
+
+        if hasattr(self,'z1eff'):
+            print('no')
+        else:
+            self.fitpatron()
         try:
+
             for i,x in enumerate(self.dzcorrnorm):
                 index=i+1
                 fpar,fig=fit.mu(self.f,self.coil,x,self.espesores[index],self.sigmas[index],self.files[index])

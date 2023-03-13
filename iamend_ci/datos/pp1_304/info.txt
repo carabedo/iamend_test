@@ -1,5 +1,5 @@
 archivo,conductividad,espesor,bobina
 pp1_304\Exp_304_Aire.csv,0,0,pp1
-pp1_304\Exp_304_M4.csv,0,0,pp1
-pp1_304\Exp_304_M6.csv,0,0,pp1
-pp1_304\Exp_304_Pat3948.csv,0,0,pp1
+pp1_304\Exp_304_M04.csv,0,0,pp1
+pp1_304\Exp_304_M06.csv,0,0,pp1
+pp1_304\Exp_304_P057.csv,0,0,pp1
