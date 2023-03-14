@@ -81,13 +81,13 @@ def mu(f,bo_eff,dzucorrnorm,dpatron,sigma, name):
     xmeas=f
     ymeas=dzucorrnorm.imag   
     fpar, fcov=optimize.curve_fit(funmu, xmeas, ymeas, p0=[1], bounds=(0,150))
-    mur=fpar[0]
-    yteo=theo.dzD(f,bo_eff,sigma,dpatron,mur,1500)
-    yteo=yteo.imag/x0
-    para_eff={'name' : 'mu_r', 'value' : mur}
-    fig=imlogfit(f,[ymeas, yteo],para_eff,name)
-    print('mu_r_eff =',fpar[0])
-    return(fpar,fig)
+    # mur=fpar[0]
+    # yteo=theo.dzD(f,bo_eff,sigma,dpatron,mur,1500)
+    # yteo=yteo.imag/x0
+    # para_eff={'name' : 'mu_r', 'value' : mur}
+    #fig=imlogfit(f,[ymeas, yteo],para_eff,name)
+    #print('mu_r_eff =',fpar[0])
+    return(fpar)
 
 
 def fmu(f,coil,n,dzcorrnorm,sigma,name,dpatron=1):
@@ -119,13 +119,15 @@ def fmu(f,coil,n,dzcorrnorm,sigma,name,dpatron=1):
     }          
     return datafmu
 
+# matplotlib
+
 def imlogfit(f,data,para_eff,name,savefile=0):
     """ agarra data procesada por fit.mu y guarda png """
     ymeas=data[0]
     yteo=data[1]
     label=para_eff['name']
     p_eff=para_eff['value']
-    fig=plt.figure(figsize=(8,6))
+    fig=plt.figure(figsize=(6,4))
     plt.semilogx(f,ymeas,'ok',markersize=4,markerfacecolor='none')
     plt.semilogx(f,yteo,'k',label=label +'_eff = ' + str(np.round(p_eff,2)) )
     plt.ylabel('$Im(\Delta Z)/X_0$',fontsize=12)

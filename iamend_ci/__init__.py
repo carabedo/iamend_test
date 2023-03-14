@@ -97,7 +97,7 @@ class exp():
             self.normcorr()
 
         except Exception as e:
-            print(e)
+            print('No se pudieron cargar los archivos. Error: ', e)
 
 
 
@@ -167,34 +167,45 @@ class exp():
             z1eff,figz1fit=fit.z1(self.f,self.coil,dzcorrnorm,esp,sigma,self.files[indice_patron])
             self.z1eff=z1eff[0]
             self.coil[4]=self.z1eff
+            return True
         except:
             print('No se encuentra medicion sobre el patron, defina z1eff manualmente')               
-    
+            return False
 
-    def fitmues(self):
-        mues=[]
-        muesfigs=[]
+    def fitmues(self,figs=True):
 
+        if not hasattr(self,'z1eff'):
+            print('Ajustando z1 effectivo')
+            if self.fitpatron():
+                muestras=self.dznorm[self.dznorm.muestra.str.contains('M')].muestra.unique()
+                mufigs=[]
+                self.info['mueff']=np.nan
+                for x in muestras:
+                    row=self.info[self.info.muestras.str.contains(x)]
+                    esp=row.espesor.values[0]
+                    sigma=row.conductividad.values[0]
+                    dzucorrnorm=self.dznorm[self.dznorm.muestra == x].dzcorrnorm.values
 
-        if hasattr(self,'z1eff'):
-            print('no')
+                    #mu(f,bo_eff,dzucorrnorm,dpatron,sigma, name):
+                    fpar=fit.mu(self.f,self.coil,dzucorrnorm,esp,sigma,row.archivo.values[0])
+                    self.info.loc[row.index.values[0],'mueff']=fpar
+                    # mufigs.append(fig)
+                # self.mufigs=mufigs
         else:
-            self.fitpatron()
-        try:
+            muestras=self.dznorm[self.dznorm.muestra.str.contains('M')].muestra.unique()
+            mufigs=[]
+            self.info['mueff']=np.nan
+            for x in muestras:
+                row=self.info[self.info.muestras.str.contains(x)]
+                esp=row.espesor.values[0]
+                sigma=row.conductividad.values[0]
+                dzucorrnorm=self.dznorm[self.dznorm.muestra == x].dzcorrnorm.values
 
-            for i,x in enumerate(self.dzcorrnorm):
-                index=i+1
-                fpar,fig=fit.mu(self.f,self.coil,x,self.espesores[index],self.sigmas[index],self.files[index])
-                mues.append(fpar[0])
-                muesfigs.append(fig)
-            mues.insert(0,0)    
-            self.mues=mues
-            self.muesfigs=muesfigs
-            self.info['mu_eff']=self.mues
-        except:
-            print('Corrija y normalice los datos usando .normcorr()')
-        return
-
+                #mu(f,bo_eff,dzucorrnorm,dpatron,sigma, name):
+                fpar=fit.mu(self.f,self.coil,dzucorrnorm,esp,sigma,row.archivo.values[0])
+                self.info.loc[row.index.values[0],'mueff']=fpar
+            #     mufigs.append(fig)
+            # self.mufigs=mufigs
 
 
     def fitfmues(self,n=-1,fn=4):
@@ -206,7 +217,8 @@ class exp():
 
 
 
-
+    def set_z1eff(self,z1eff):
+        setattr(self,'z1eff',z1eff)
 
     # imprime la string para la instancia
     def __str__(self):
