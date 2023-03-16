@@ -229,6 +229,7 @@ class exp():
                 sigma=row.conductividad.values[0]
                 dzucorrnorm=self.dznorm[self.dznorm.muestra == x].dzcorrnorm.values
                 fmu_fits[x]=fit.fmu(self.f,coil_eff,n_splits_f,dzucorrnorm,sigma,espesor,name)
+            self.fmues=fmu_fits
         elif len(args)==2:
             print('fiteo desde A a B')    
 
