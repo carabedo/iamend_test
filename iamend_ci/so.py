@@ -39,7 +39,8 @@ class DataFrameCI(pd.DataFrame):
         self.l0=bobina['L0']
     def impx(self):
         self['idznorm']=self['imag']/(2*np.pi*self['f']*self.l0)
-        return px.line(self, x='f',y='idznorm',color='repeticion',log_x=True)
+        self['repeticion']=self['repeticion'].astype(str)
+        return px.scatter(self, x='f',y='idznorm',color='repeticion',log_x=True)
 
 def load(path,bobina,separador=';'):
     """ carga archivos en la carpeta actual, todos deben pertenecer a un mismo experimento, mismas frecuencias y misma cantidad de repeticiones, se le puede asginar la direccion en disco de la carpeta a la variable path (tener cuidado con los //), si path=0 abre una ventana de windows para elegirla manualmente

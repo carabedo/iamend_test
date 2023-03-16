@@ -27,7 +27,8 @@ class DataFrameCI(pd.DataFrame):
         self.l0=bobina['L0']
     def impx(self):
         self['idznorm']=self['imag']/(self['2*pi*f']*self.l0)
-        return px.line(self, x='f',y='idznorm',color='repeticion',log_x=True)
+        self['repeticion']=self['repeticion'].astype(str)
+        return px.scatter(self, x='f',y='idznorm',color='repeticion',log_x=True)
 
 def get_id(x):
     if 'aire'in x.lower():
