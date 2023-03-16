@@ -5,13 +5,15 @@ import iamend_ci.so as so
 import iamend_ci.plt as plt
 import iamend_ci.ax as ax
 import iamend_ci.pxplt as px
+import iamend_ci.plotbokeh as pb
+
 import os
 import pandas as pd
 import numpy as np
 import plotly.express as px
 #esto sirve para no tener daramas con el path en windows/unix
 from pathlib import Path
-
+from sklearn.metrics import r2_score as R2
 
 class DataFrameCI(pd.DataFrame):
     # construyo esta clase para extender la funcionalidad 
@@ -24,9 +26,8 @@ class DataFrameCI(pd.DataFrame):
         self.filename=filename
         self.l0=bobina['L0']
     def impx(self):
-        self['idznorm']=self['Impedance Imaginary (Ohms)']/(self['2*pi*f']*self.l0)
-        self['Sweep Number']=self['Sweep Number'].astype(float).astype(int)
-        return px.line(self, x='Frequency (Hz)',y='idznorm',color='Sweep Number',log_x=True)
+        self['idznorm']=self['imag']/(self['2*pi*f']*self.l0)
+        return px.line(self, x='f',y='idznorm',color='repeticion',log_x=True)
 
 def get_id(x):
     if 'aire'in x.lower():
@@ -94,7 +95,7 @@ class exp():
 
                 setattr(self,'df'+ str(i),df_ci)
 
-            self.normcorr()
+            self.normcorr_dict()
 
         except Exception as e:
             print('No se pudieron cargar los archivos. Error: ', e)
@@ -103,53 +104,35 @@ class exp():
 
 
 
-    def normcorr(self):
+
+
+    def normcorr_dict(self):
         '''
         Metodo que corrije las mediciones utilizando el benchmark harrison(xxxx)
         '''
         try:
-            index_file_aire=self.files.index[self.files.str.lower().str.contains('aire')].values[0]
-            self.index_aire=index_file_aire
-            self.file_aire=self.files[index_file_aire]
             # diccionario con las variaciones de impedancias
             # corregidas y normalizadas (re + 1j imag)
-            dict_dzcorrnorm=so.corrnorm(self,index_file_aire)
+            dict_dzcorrnorm,data_test,dict_dzcorrnorm_test=so.corrnorm_dict(self)
+            self.data_test=data_test
+            self.dznorm_test=dict_dzcorrnorm_test
             df=pd.DataFrame(dict_dzcorrnorm)
             df['f']=self.f
             dfdz=pd.melt(df,id_vars=df.columns[-1], var_name='muestra',value_name='dzcorrnorm')
             dfdz['imag']=np.imag(dfdz['dzcorrnorm'])
             dfdz['real']=np.real(dfdz['dzcorrnorm'])
-            dfdz['muestra']=dfdz['muestra'].astype(int).map(pd.Series(self.files))
-            dfdz['muestra']=dfdz['muestra'].apply(lambda x: x.split('_')[-1].split('.')[0])
             self.dznorm=dfdz
-        except:
-            print('Falta el archivo con la medicion de la impedancia en aire.')
-        # self.dzcorrnorm=so.corr(self.f,self.coil,[self.data],Vzu='all') 
-        # df dzcorrnorm
-
-        # muestras=[x.split('_')[-1].split('.')[0] for x in self.files.values if ('Aire' not in x) ]
-        # idzcorr=pd.DataFrame(np.array(self.dzcorrnorm).imag.T, columns=muestras)
-        # idzcorr['f']=self.f
-        # redzcorr=pd.DataFrame(np.array(self.dzcorrnorm).real.T, columns=muestras)
-        # redzcorr['f']=self.f
-        # self.imdz=idzcorr
-        # self.redz=redzcorr  
-
+        except Exception as e:
+            print(e)
 
 
 
     def implots(self):
-        if hasattr(self,'imdz'):
-            dfm = self.imdz.melt('f', var_name='muestra', value_name='imdzcorrnorm')
-            return px.line(dfm, x='f',y='imdzcorrnorm',color='muestra',log_x=True)
-        else:
-            print('Es necesario corregir y normalizar los datos. Utilice el metodo .normcorr()')
+        px.line(self.dznorm,x='f',y='imag',color='muestra',log_x=True)
+
     def replots(self):
-        if hasattr(self,'redz'):
-            dfm = self.redz.melt('f', var_name='muestra', value_name='redzcorrnorm')
-            return px.line(dfm, x='f',y='redzcorrnorm',color='muestra',log_x=True)
-        else:
-            print('Es necesario corregir y normalizar los datos. Utilice el metodo .normcorr()')
+        px.line(self.dznorm,x='f',y='real',color='muestra',log_x=True)
+
 
     def im(self,n):
         plt.im(self.dzcorrnorm[n+1],self.f,self.files[n+1])
@@ -164,7 +147,7 @@ class exp():
             dzcorrnorm=self.dznorm[self.dznorm.muestra == self.info.iloc[indice_patron].muestras].dzcorrnorm.values
             esp=self.info.espesor.iloc[indice_patron]
             sigma=self.info.conductividad.iloc[indice_patron]
-            z1eff,figz1fit=fit.z1(self.f,self.coil,dzcorrnorm,esp,sigma,self.files[indice_patron])
+            z1eff=fit.z1(self.f,self.coil,dzcorrnorm,esp,sigma,self.files[indice_patron])
             self.z1eff=z1eff[0]
             self.coil[4]=self.z1eff
             return True
@@ -178,8 +161,10 @@ class exp():
             print('Ajustando z1 effectivo')
             if self.fitpatron():
                 muestras=self.dznorm[self.dznorm.muestra.str.contains('M')].muestra.unique()
-                mufigs=[]
                 self.info['mueff']=np.nan
+                self.info['R2']=np.nan
+
+                yteos={}
                 for x in muestras:
                     row=self.info[self.info.muestras.str.contains(x)]
                     esp=row.espesor.values[0]
@@ -189,12 +174,19 @@ class exp():
                     #mu(f,bo_eff,dzucorrnorm,dpatron,sigma, name):
                     fpar=fit.mu(self.f,self.coil,dzucorrnorm,esp,sigma,row.archivo.values[0])
                     self.info.loc[row.index.values[0],'mueff']=fpar
-                    # mufigs.append(fig)
-                # self.mufigs=mufigs
+                    x0=2*np.pi*self.f*self.coil[-1]
+                    yteo=theo.dzD(self.f,self.coil,sigma,esp,fpar,1500)/x0
+                    yteos[x]=yteo
+
+                    # validacion con test de la parte imaginaria
+                    r2=R2(yteo.imag,self.dznorm_test[x].values.imag)
+                    self.info.loc[row.index.values[0],'R2']=r2
+                self.ypreds=yteos
         else:
             muestras=self.dznorm[self.dznorm.muestra.str.contains('M')].muestra.unique()
-            mufigs=[]
             self.info['mueff']=np.nan
+            self.info['R2']=np.nan
+            yteos={}
             for x in muestras:
                 row=self.info[self.info.muestras.str.contains(x)]
                 esp=row.espesor.values[0]
@@ -204,16 +196,43 @@ class exp():
                 #mu(f,bo_eff,dzucorrnorm,dpatron,sigma, name):
                 fpar=fit.mu(self.f,self.coil,dzucorrnorm,esp,sigma,row.archivo.values[0])
                 self.info.loc[row.index.values[0],'mueff']=fpar
-            #     mufigs.append(fig)
-            # self.mufigs=mufigs
+                x0=2*np.pi*self.f*self.coil[-1]
+                yteo=theo.dzD(self.f,self.coil,sigma,esp,fpar,1500)/x0
+                yteos[x]=yteo
+
+                # validacion con test de la parte imaginaria
+                r2=R2(yteo.imag,self.dznorm_test[x].values.imag)
+                self.info.loc[row.index.values[0],'R2']=r2
+            self.ypreds=yteos
 
 
-    def fitfmues(self,n=-1,fn=4):
-        if n==-1 :
+    def fitplots(self):
+        pb.plot_fit_mues(self)
+        
+    def fitplot(self,muestra):
+        pb.plot_fit_mu(self,muestra)
+
+    def fitfmues(self,*args,**kwargs):
+
+        if len(args) == 0:
             pass
-        else:
-            self.fmues=fit.fmu(self.f,self.coil,fn,self.dzcorrnorm[n],self.sigmas[n+1],self.files[n+1])
+        elif len(args)==1:
+            print('fiteo en N tramos')
+            n_splits_f=args[0]
+            muestras=self.dznorm[self.dznorm.muestra.str.contains('M')].muestra.unique()
+            coil_eff=self.coil
+            fmu_fits={}
+            for i,x in enumerate(muestras):
+                name=x
+                row=self.info[self.info.muestras.str.contains(x)]
+                espesor=row.espesor.values[0]
+                sigma=row.conductividad.values[0]
+                dzucorrnorm=self.dznorm[self.dznorm.muestra == x].dzcorrnorm.values
+                fmu_fits[x]=fit.fmu(self.f,coil_eff,n_splits_f,dzucorrnorm,sigma,espesor,name)
 
+
+        elif len(args)==2:
+            print('fiteo desde A a B')    
 
 
 
@@ -226,3 +245,27 @@ class exp():
     def __repr__(self):
         return f'Experimento ({self.path})'
 
+## LEGACY
+
+    # def normcorr(self):
+    #     '''
+    #     Metodo que corrije las mediciones utilizando el benchmark harrison(xxxx)
+    #     '''
+    #     try:
+    #         index_file_aire=self.files.index[self.files.str.lower().str.contains('aire')].values[0]
+    #         self.index_aire=index_file_aire
+    #         self.file_aire=self.files[index_file_aire]
+    #         # diccionario con las variaciones de impedancias
+    #         # corregidas y normalizadas (re + 1j imag)
+    #         dict_dzcorrnorm,data_test=so.corrnorm(self,index_file_aire)
+    #         self.data_test=data_test
+    #         df=pd.DataFrame(dict_dzcorrnorm)
+    #         df['f']=self.f
+    #         dfdz=pd.melt(df,id_vars=df.columns[-1], var_name='muestra',value_name='dzcorrnorm')
+    #         dfdz['imag']=np.imag(dfdz['dzcorrnorm'])
+    #         dfdz['real']=np.real(dfdz['dzcorrnorm'])
+    #         dfdz['muestra']=dfdz['muestra'].astype(int).map(pd.Series(self.files))
+    #         dfdz['muestra']=dfdz['muestra'].apply(lambda x: x.split('_')[-1].split('.')[0])
+    #         self.dznorm=dfdz
+    #     except:
+    #         print('Falta el archivo con la medicion de la impedancia en aire.')

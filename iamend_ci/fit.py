@@ -41,20 +41,20 @@ def z1(f,bo,dzucorrnorm,dpatron,sigma,name):
     fpar, fcov=optimize.curve_fit(funz1, xmeas, ymeas, p0=[1.1e-3], bounds=(0,2e-3))
     
 
-    z1eff=fpar[0]
-    r1=bo[0]
-    r2=bo[1]
-    dh=bo[2]
-    N=bo[3]
-    boeff=[r1,r2,dh,N,z1eff,l0]
-    yteo=theo.dzD(f,boeff,sigma,dpatron,mur,1500)
-    yteo=yteo.imag/x0
+    # z1eff=fpar[0]
+    # r1=bo[0]
+    # r2=bo[1]
+    # dh=bo[2]
+    # N=bo[3]
+    # boeff=[r1,r2,dh,N,z1eff,l0]
+    # yteo=theo.dzD(f,boeff,sigma,dpatron,mur,1500)
+    # yteo=yteo.imag/x0
     
-    para_eff={'name' : 'z1', 'value' : z1eff*1000}
+    # para_eff={'name' : 'z1', 'value' : z1eff*1000}
 
-    fig=imlogfit(f,[ymeas, yteo],para_eff,name)
+    # fig=imlogfit(f,[ymeas, yteo],para_eff,name)
     print('z1 =',fpar[0]*1000,'mm')
-    return(fpar,fig)
+    return(fpar)
 
 
 def mu(f,bo_eff,dzucorrnorm,dpatron,sigma, name):
@@ -90,23 +90,36 @@ def mu(f,bo_eff,dzucorrnorm,dpatron,sigma, name):
     return(fpar)
 
 
-def fmu(f,coil,n,dzcorrnorm,sigma,name,dpatron=1):
-    bo=coil
+def fmu(f,coil_eff,n_splits_f,dzcorrnorm,sigma,espesor,name):
+    """fmu (frecuencia, bobina, n_splits_f,datacorr,sigma,dpatron, name)
+    Ajuste de la permeabilidad
+
+    Parameters
+    ----------
+    f : array_like, vector con las frecuencias
+    datacorr : array_like, matriz con las mediciones
+    bo: array_like, vector con los parametros geometricos de la bobina
+    datacorr: array_like, matrix con las mediciones corregidas y nromalizadas
+    n : int, indice de la medicion 
+    espesor: float, espesor muestra
+    sigma : float, conductividad muestra
+    """  
+    n=n_splits_f
+    bo=coil_eff
     mues=list()
     yts=list()
     fs=np.array_split(f,n)
     ys=np.array_split(dzcorrnorm.imag,n)
     l0=bo[-1]
-    boeff=coil[:]
     def funmu(x,a):
-        return theo.dzD(x,boeff,sigma,dpatron,a,1500).imag/x0    
+        return theo.dzD(x,coil_eff,sigma,espesor,a,1500).imag/x0    
     for i,frec in enumerate(fs):
         w=2*np.pi*frec
         x0=w*l0
         xmeas=frec
         ymeas=ys[i]
         fpar, fcov=optimize.curve_fit(funmu, xmeas, ymeas, p0=5, bounds=(1, 200))    
-        yt=theo.dzD(frec,boeff,sigma,dpatron,fpar[0],1500).imag/x0     
+        yt=theo.dzD(frec,coil_eff,sigma,espesor,fpar[0],1500).imag/x0     
         yts.append(yt)    
         mues.append(fpar[0])
 
@@ -118,6 +131,9 @@ def fmu(f,coil,n,dzcorrnorm,sigma,name,dpatron=1):
         'name'  : name
     }          
     return datafmu
+
+
+
 
 # matplotlib
 
