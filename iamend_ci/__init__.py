@@ -128,18 +128,6 @@ class exp():
 
 
 
-    def implots(self):
-        px.line(self.dznorm,x='f',y='imag',color='muestra',log_x=True)
-
-    def replots(self):
-        px.line(self.dznorm,x='f',y='real',color='muestra',log_x=True)
-
-
-    def im(self,n):
-        plt.im(self.dzcorrnorm[n+1],self.f,self.files[n+1])
-
-    def re(self,n):
-        plt.re(self.dzcorrnorm[n+1],self.f,self.files[n+1])
 
 
     def fitpatron(self):
@@ -206,13 +194,6 @@ class exp():
                 self.info.loc[row.index.values[0],'R2']=r2
             self.ypreds=yteos
 
-
-    def fitplots(self):
-        pb.plot_fit_mues(self)
-        
-    def fitplot(self,muestra):
-        pb.plot_fit_mu(self,muestra)
-
     def fitfmues(self,*args,**kwargs):
 
         if len(args) == 0:
@@ -229,11 +210,42 @@ class exp():
                 espesor=row.espesor.values[0]
                 sigma=row.conductividad.values[0]
                 dzucorrnorm=self.dznorm[self.dznorm.muestra == x].dzcorrnorm.values
-                fmu_fits[x]=fit.fmu(self.f,coil_eff,n_splits_f,dzucorrnorm,sigma,espesor,name)
+                fmu_fit=fit.fmu(self.f,coil_eff,n_splits_f,dzucorrnorm,sigma,espesor,name)             
+                for fn in range(n_splits_f):
+                    fo=int(fmu_fit['fs'][fn][0]/1000)
+                    ff=int(fmu_fit['fs'][fn][-1]/1000)
+                    self.info.loc[self.info.muestras==x,'mu '+str(fo)+'k-'+str(ff)+'k']=fmu_fit['mues'][fn]   
+                fmu_fits[x]=fmu_fit             
             self.fmues=fmu_fits
+
         elif len(args)==2:
             print('fiteo desde A a B')    
 
+    # ploteos
+
+    def implots(self):
+        px.line(self.dznorm,x='f',y='imag',color='muestra',log_x=True)
+
+    def replots(self):
+        px.line(self.dznorm,x='f',y='real',color='muestra',log_x=True)
+
+
+    def im(self,n):
+        plt.im(self.dzcorrnorm[n+1],self.f,self.files[n+1])
+
+    def re(self,n):
+        plt.re(self.dzcorrnorm[n+1],self.f,self.files[n+1])
+
+
+    def muesplot(self):
+        pb.plot_fit_mues(self)
+        
+    def muplot(self,muestra):
+        pb.plot_fit_mu(self,muestra)
+
+        
+    def fmuplot(self,muestra):
+        pb.plot_fit_fmu(self,muestra)
 
 
     def set_z1eff(self,z1eff):
