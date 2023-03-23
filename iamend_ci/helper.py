@@ -1,7 +1,7 @@
 import glob
 import sys
 
-path = sys.argv[1] 
+path = './iamend_ci/datos/'+sys.argv[1] 
 print('folder: '+path)
 files = glob.glob(path+ "*.csv")
 csv_files=[ x.split('/')[-1] for x in files]

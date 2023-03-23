@@ -6,6 +6,7 @@ import plotly.graph_objs as go
 import matplotlib.pyplot as plt
 from plotly.subplots import make_subplots
 
+
 def z1(f,bo,dzucorrnorm,dpatron,sigma,name):
     
     """z1 (frecuencia, bobina, datacorr, n, dpatron,sigma, mur)
@@ -39,23 +40,37 @@ def z1(f,bo,dzucorrnorm,dpatron,sigma,name):
     xmeas=f
     ymeas=dzucorrnorm.imag   
     fpar, fcov=optimize.curve_fit(funz1, xmeas, ymeas, p0=[1.1e-3], bounds=(0,2e-3))
-    
+    print('z1 =',fpar[0]*1000,'mm')
+    return(fpar)
 
-    # z1eff=fpar[0]
     # r1=bo[0]
     # r2=bo[1]
     # dh=bo[2]
     # N=bo[3]
-    # boeff=[r1,r2,dh,N,z1eff,l0]
-    # yteo=theo.dzD(f,boeff,sigma,dpatron,mur,1500)
-    # yteo=yteo.imag/x0
-    
-    # para_eff={'name' : 'z1', 'value' : z1eff*1000}
+    # z1=bo[4]
+    # l0=bo[5]
 
-    # fig=imlogfit(f,[ymeas, yteo],para_eff,name)
-    print('z1 =',fpar[0]*1000,'mm')
+def N(f,bo,dzucorrnorm,espesorpatron,sigmapatron,name):
+    mupatron=1
+
+    def fun_N(x,b):
+        r1=bo[0]
+        r2=bo[1]
+        dh=bo[2]
+        N=b
+        z1=bo[4]
+        bob_eff=[r1,r2,dh,N,z1,bo[5]]
+        return theo.dzD(x,bob_eff,sigmapatron,espesorpatron,mupatron,3000).imag/x0
+    #[f,z0,dzucorr,w]
+    l0=bo[-1]
+    w=2*np.pi*f
+    x0=w*l0
+      
+    xmeas=f
+    ymeas=dzucorrnorm.imag   
+    fpar, fcov=optimize.curve_fit(fun_N, xmeas, ymeas, p0=[500], bounds=(100,1000))
+    print('N =',fpar[0])
     return(fpar)
-
 
 def mu(f,bo_eff,dzucorrnorm,dpatron,sigma, name):
     """mu (frecuencia, bobina, datacorr, dpatron,sigma, name, z1eff)

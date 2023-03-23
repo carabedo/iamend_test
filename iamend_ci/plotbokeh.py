@@ -5,7 +5,24 @@ import numpy as np
 
 output_notebook()
 
+def plot_fit_patron(exp,param_geo, altura=500,ancho=600):
+    tool_list = ['box_zoom', 'reset']
+    x=exp.f
+    muestra='P'
+    try:
+        muestra_name=exp.dznorm[exp.dznorm.muestra.str.contains(muestra.upper())].muestra.values[0]
+        y=exp.dznorm[exp.dznorm.muestra == muestra_name].imag.values
+        
+        yteo=exp.ypreds[muestra_name].imag
 
+        mur=exp.info[exp.info.muestras.str.contains(muestra.upper())].mueff.values[0]
+
+        plot1 = figure( title=muestra+' mueff = '+ str(mur.round(2)),x_axis_label='f[Hz]',y_axis_label='im(dz)/x0',height=altura, width=ancho, tools=tool_list,x_axis_type="log")
+        plot1.circle(x, y)
+        plot1.line(x=x, y=yteo, line_color="#f46d43", line_width=2, line_alpha=0.6)
+        show(plot1)
+    except:
+        print('No existe la muestra, revise .info')
 
 def plot_fit_mues(exp):
     tool_list = ['box_zoom', 'reset']
