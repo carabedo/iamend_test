@@ -145,7 +145,8 @@ class exp():
                 self.coil[3]=self.Neff
 
             if plot == True:
-                pb.plot_fit_patron(self)
+                pb.plot_fit_patron(self,param_geo)
+
             return True
         
         except Exception as e:
