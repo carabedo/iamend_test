@@ -97,6 +97,7 @@ def corrnorm_dict(exp):
         z=re+i*2pi*f*l0
     """ 
     data_mean,data_std,data_test=stats_dict(exp)
+
     w=np.pi*2*exp.f
     
     z0=exp.bobina['R0']+1j*w*exp.bobina['L0']
@@ -115,8 +116,10 @@ def corrnorm_dict(exp):
 
             # correcion test
             zu_test=data_test[muestra].real+1j*data_test[muestra].imag
-            dzucorr=((1/(1/zu_test - 1/za+ 1/z0))-z0  )				
-            datacorrnorm_test[muestra]=dzucorr/x0
+            dzucorr=((1/(1/zu_test - 1/za+ 1/z0))-z0  )		
+
+            # con el .values le saco los indices		
+            datacorrnorm_test[muestra]=dzucorr.values/x0
         return datacorrnorm,data_test,datacorrnorm_test
     except:
         print('No se encontro archivo con medicion en aire.')
@@ -131,7 +134,9 @@ def stats_dict(exp):
 
     for m,datamuestra_m in enumerate(exp.data):
         #excluimos la primer repeticion
-        name=exp.info.iloc[m].muestras
+        filename=datamuestra_m.filename
+        name=exp.info[exp.info.archivo==filename].muestras.values[0]
+
         df=datamuestra_m[datamuestra_m.repeticion != 1 ]
         #separamos de manera aleatoria un valor de impedancia para cada frecuencia
         df_test=df.groupby('f').sample(1)
@@ -139,6 +144,7 @@ def stats_dict(exp):
         #boramos del dataset original esos valores
         df.loc[df_test.index,'imag']=np.nan
         #calculamos mean y std 
+        
         real_mean=df.groupby('f')['real'].mean().values
         imag_mean=df.groupby('f')['imag'].mean().values
         real_std=df.groupby('f')['real'].std().values

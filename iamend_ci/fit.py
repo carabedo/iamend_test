@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 from plotly.subplots import make_subplots
 
 
-def z1(f,bo,dzucorrnorm,dpatron,sigma,name):
+def z1(f,bo,dzucorrnorm,dpatron,sigma,rango):
     
     """z1 (frecuencia, bobina, datacorr, n, dpatron,sigma, mur)
     Ajuste del lift-off
@@ -39,6 +39,7 @@ def z1(f,bo,dzucorrnorm,dpatron,sigma,name):
       
     xmeas=f
     ymeas=dzucorrnorm.imag   
+
     fpar, fcov=optimize.curve_fit(funz1, xmeas, ymeas, p0=[1.1e-3], bounds=(0,2e-3))
     print('z1 =',fpar[0]*1000,'mm')
     return(fpar)
@@ -50,7 +51,7 @@ def z1(f,bo,dzucorrnorm,dpatron,sigma,name):
     # z1=bo[4]
     # l0=bo[5]
 
-def N(f,bo,dzucorrnorm,espesorpatron,sigmapatron,name):
+def N(f,bo,dzucorrnorm,espesorpatron,sigmapatron,rango):
     mupatron=1
 
     def fun_N(x,b):
@@ -68,9 +69,18 @@ def N(f,bo,dzucorrnorm,espesorpatron,sigmapatron,name):
       
     xmeas=f
     ymeas=dzucorrnorm.imag   
-    fpar, fcov=optimize.curve_fit(fun_N, xmeas, ymeas, p0=[500], bounds=(100,1000))
+
+    if rango:
+        bound_min=rango[0]
+        bound_max=rango[1]
+        p0=(bound_max+bound_min)/2
+        fpar, fcov=optimize.curve_fit(fun_N, xmeas, ymeas, p0=[p0], bounds=(bound_min,bound_max))
+    else:
+        fpar, fcov=optimize.curve_fit(fun_N, xmeas, ymeas, p0=[500], bounds=(0,1000))
+
     print('N =',fpar[0])
     return(fpar)
+
 
 def mu(f,bo_eff,dzucorrnorm,dpatron,sigma, name):
     """mu (frecuencia, bobina, datacorr, dpatron,sigma, name, z1eff)

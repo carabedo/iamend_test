@@ -49,10 +49,14 @@ def plot_fit_mues(exp):
     for muestra in exp.dznorm.muestra.unique():
         if 'M' in muestra:
             x=exp.f
-            y=exp.dznorm_test[muestra].values.imag
+            dzucorrnorm_test=exp.dznorm_test[exp.dznorm_test.muestra == muestra].dzcorrnorm.values
+
+            y=dzucorrnorm_test.imag
             yteo=exp.ypreds[muestra].imag
+
             mur=exp.info[exp.info.muestras.str.contains(muestra)].mueff.values[0]
-            plot1 = figure( title=muestra+' mueff = '+ str(mur.round(2)),x_axis_label='f[Hz]',y_axis_label='im(dz)/x0',height=250, width=300, tools=tool_list,x_axis_type="log")
+            plot1 = figure( title=muestra+' mueff = '+ str(mur.round(2)),x_axis_label='f[Hz]',
+                           y_axis_label='im(dz)/x0',height=250, width=300, tools=tool_list,x_axis_type="log")
             plot1.circle(x, y)
             plot1.line(x=x, y=yteo, line_color="#f46d43", line_width=2, line_alpha=0.6)
             plots.append(plot1)

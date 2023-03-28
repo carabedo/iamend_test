@@ -1,0 +1,5 @@
+archivo,conductividad,espesor,bobina,muestras
+Exp_m1_347-M02.csv,1118491.27,0.0234,m1,347-M02
+Exp_m1_1010-M01_m1.csv,3830000.0,0.065,m1,1010-M01
+Exp_m1_aire.csv,0.0,0.0,m1,aire
+Exp_m1_P057.csv,3948000.0,0.14957,m1,P057

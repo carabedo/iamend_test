@@ -6,7 +6,6 @@ import iamend_ci.plt as plt
 import iamend_ci.ax as ax
 import iamend_ci.pxplt as px
 import iamend_ci.plotbokeh as pb
-
 import os
 import pandas as pd
 import numpy as np
@@ -16,47 +15,12 @@ from pathlib import Path
 from sklearn.metrics import r2_score as R2
 import logging
 
-class DataFrameCI(pd.DataFrame):
-    # construyo esta clase para extender la funcionalidad 
-    # del dataframe de pandas, le agrego la posibilidad
-    # de graficar las 11 mediciones que se realizan sobre 
-    # cada muestra
-    def __init__(self,filename,bobina,*args, **kwargs):
-        super().__init__(*args, **kwargs)
-        # solo me deja agregar atributos que no sean listas.
-        self.filename=filename
-        self.l0=bobina['L0']
-    def impx(self):
-        self['idznorm']=self['imag']/(self['2*pi*f']*self.l0)
-        self['repeticion']=self['repeticion'].astype(str)
-        return px.scatter(self, x='f',y='idznorm',color='repeticion',log_x=True)
-    
-    def repx(self):
-        self['repeticion']=self['repeticion'].astype(str)
-        return px.scatter(self, x='f',y='real',color='repeticion',log_x=True)
-    
-def get_id(x):
-    if 'aire'in x.lower():
-        return 'aire'
-    elif 'm' in x.lower():
-        return '_'.join(x.split('.')[0].split('_')[-2:])
-    elif 'p' in x.lower():
-        return '_'.join(x.split('.')[0].split('_')[-1:])
-    else:
-        return 'No se reconoce el nombre del archivo.'
+# definicion de la clase 'exp'
 
-def get_sigma(x,muestras):
-    try:
-        return muestras[muestras.nombre==x].conductividad.values[0]
-    except:   
-        return 0 
-def get_esp(x,muestras):
-    try:
-        return muestras[muestras.nombre==x].espesor.values[0]*10e-3
-    except:   
-        return 0         
-    
 class exp():
+    ''' Clase Experimentos:
+    Se instancian con el nombre de la carpeta donde estan los archivos del solatron. Un carpeta para cada bobina, todo el experimento necesita una medicion en aire. Medicion en un patron para el ajuste efectivo del lift-off.
+    '''
     def __init__(self,path):
         self.path=path
         try:
@@ -67,13 +31,13 @@ class exp():
 
             self.info=info
             self.files=info.iloc[:,0]
-            self.sigmas=info.iloc[:,1]
-            self.espesores=info.iloc[:,2]
-            self.info['muestras']=self.info.archivo.apply(lambda x: get_id(x))
-            #lo haria URL
-            muestras=pd.read_csv('./iamend_ci/muestras.csv')
-            self.info.conductividad=self.info.muestras.apply(lambda x: get_sigma(x,muestras))
-            self.info.espesor=self.info.muestras.apply(lambda x: get_esp(x,muestras))
+
+            # self.info['muestras']=self.info.archivo.apply(lambda x: get_id(x))
+            # #lo haria URL
+            # muestras=pd.read_csv('./iamend_ci/muestras.csv')
+            # self.info.conductividad=self.info.muestras.apply(lambda x: get_sigma(x,muestras))
+            # self.info.espesor=self.info.muestras.apply(lambda x: get_esp(x,muestras))
+
             if len(info.bobina.unique()) == 1: 
                 try:            
                     self.bobina=bo.data_dicts[info.bobina[0]]     
@@ -83,12 +47,13 @@ class exp():
             else:
                 print('Mas de una bobina, separe las mediciones en carpetas para cada bobina.')
             
-            # Cargo todos los cvs como lista de DFci
+            # Cargo todos los cvs como diccionario de DFci
 
             try:
                 self.data=so.load(self.path,bobina=self.bobina)
             except:
                 self.data=so.load(self.path,bobina=self.bobina,separador=',')
+
 
             print(self.info)  
 
@@ -114,33 +79,62 @@ class exp():
             # diccionario con las variaciones de impedancias
             # corregidas y normalizadas (re + 1j imag)
             dict_dzcorrnorm,data_test,dict_dzcorrnorm_test=so.corrnorm_dict(self)
+
             self.data_test=data_test
-            self.dznorm_test=dict_dzcorrnorm_test
+            self.dznorm_test_dict=dict_dzcorrnorm_test
+
             df=pd.DataFrame(dict_dzcorrnorm)
+            df_test=pd.DataFrame(dict_dzcorrnorm_test)
             df['f']=self.f
+            df_test['f']=self.f
             dfdz=pd.melt(df,id_vars=df.columns[-1], var_name='muestra',value_name='dzcorrnorm')
             dfdz['imag']=np.imag(dfdz['dzcorrnorm'])
             dfdz['real']=np.real(dfdz['dzcorrnorm'])
             self.dznorm=dfdz
+            dfdz_test=pd.melt(df_test,id_vars=df.columns[-1], var_name='muestra',value_name='dzcorrnorm')
+            dfdz_test['imag']=np.imag(dfdz_test['dzcorrnorm'])
+            dfdz_test['real']=np.real(dfdz_test['dzcorrnorm'])
+            self.dznorm=dfdz
+            self.dznorm_test=dfdz_test
+
         except Exception as e:
             print(e)
 
-    def fitpatron(self,param_geo='z1',plot=False):
+    def set_frange(self,f_inicial,f_final):
+        # redifinimos f
+        f_serie=pd.Series(self.f)
+        f_new_mask=f_serie.between(f_inicial,f_final)
+        self.f=f_serie[f_new_mask].values
+        # ajustamos parametros geometricos effectivos en el rango
+        ## filtramos de dznorm las frecuencias nuevas
+        self.dznorm=self.dznorm[self.dznorm.f.between(f_inicial,f_final)]
+        self.dznorm_test=self.dznorm_test[self.dznorm_test.f.between(f_inicial,f_final)]
+        #self.fitpatron()
+        # 
+
+
+
+    # Ajustes
+    def fitpatron(self,param_geo='z1',plot=False, rango = None):
         try:
             if param_geo == 'z1':
                 indice_patron=self.info[self.info.muestras.str.startswith('P')].iloc[0].name
                 dzcorrnorm=self.dznorm[self.dznorm.muestra == self.info.iloc[indice_patron].muestras].dzcorrnorm.values
                 esp=self.info.espesor.iloc[indice_patron]
                 sigma=self.info.conductividad.iloc[indice_patron]
+                
                 z1eff=fit.z1(self.f,self.coil,dzcorrnorm,esp,sigma,self.files[indice_patron])
+
                 self.z1eff=z1eff[0]
                 self.coil[4]=self.z1eff
+
             elif param_geo == 'N':
                 indice_patron=self.info[self.info.muestras.str.startswith('P')].iloc[0].name
                 dzcorrnorm=self.dznorm[self.dznorm.muestra == self.info.iloc[indice_patron].muestras].dzcorrnorm.values
                 esp=self.info.espesor.iloc[indice_patron]
                 sigma=self.info.conductividad.iloc[indice_patron]
-                Neff=fit.N(self.f,self.coil,dzcorrnorm,esp,sigma,self.files[indice_patron])
+
+                Neff=fit.N(self.f,self.coil,dzcorrnorm,esp,sigma,rango=rango)
                 self.Neff=Neff[0]
                 self.coil[3]=self.Neff
 
@@ -151,8 +145,7 @@ class exp():
         
         except Exception as e:
             print(e)   
-            logging.exception("An exception was thrown!")   
-                    
+            logging.exception("An exception was thrown!")                   
             return False
 
     def fitmues(self,figs=True):
@@ -179,7 +172,8 @@ class exp():
                     yteos[x]=yteo
 
                     # validacion con test de la parte imaginaria
-                    r2=R2(yteo.imag,self.dznorm_test[x].values.imag)
+                    dzucorrnorm_test=self.dznorm_test[self.dznorm_test.muestra == x].dzcorrnorm.values
+                    r2=R2(yteo.imag,dzucorrnorm_test.imag)
                     self.info.loc[row.index.values[0],'R2']=r2
                 self.ypreds=yteos
         else:
@@ -201,7 +195,8 @@ class exp():
                 yteos[x]=yteo
 
                 # validacion con test de la parte imaginaria
-                r2=R2(yteo.imag,self.dznorm_test[x].values.imag)
+                dzucorrnorm_test=self.dznorm_test[self.dznorm_test.muestra == x].dzcorrnorm.values
+                r2=R2(yteo.imag,dzucorrnorm_test.imag)
                 self.info.loc[row.index.values[0],'R2']=r2
             self.ypreds=yteos
 
@@ -262,10 +257,10 @@ class exp():
 
 
     def im(self,n):
-        plt.im(self.dzcorrnorm[n+1],self.f,self.files[n+1])
+        plt.im(self.dznorm[n+1],self.f,self.files[n+1])
 
     def re(self,n):
-        plt.re(self.dzcorrnorm[n+1],self.f,self.files[n+1])
+        plt.re(self.dznorm[n+1],self.f,self.files[n+1])
 
 
     def muesplot(self):
@@ -288,6 +283,48 @@ class exp():
     def __repr__(self):
         return f'Experimento ({self.path})'
 
+## Auxiliar
+
+class DataFrameCI(pd.DataFrame):
+    # construyo esta clase para extender la funcionalidad 
+    # del dataframe de pandas, le agrego la posibilidad
+    # de graficar las 11 mediciones que se realizan sobre 
+    # cada muestra
+    def __init__(self,filename,bobina,*args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # solo me deja agregar atributos que no sean listas.
+        self.filename=filename
+        self.l0=bobina['L0']
+    def impx(self):
+        self['idznorm']=self['imag']/(self['2*pi*f']*self.l0)
+        self['repeticion']=self['repeticion'].astype(str)
+        return px.scatter(self, x='f',y='idznorm',color='repeticion',log_x=True)
+    
+    def repx(self):
+        self['repeticion']=self['repeticion'].astype(str)
+        return px.scatter(self, x='f',y='real',color='repeticion',log_x=True)
+    
+def get_id(x):
+    if 'aire'in x.lower():
+        return 'aire'
+    elif 'm' in x.lower():
+        return '_'.join(x.split('.')[0].split('_')[-2:])
+    elif 'p' in x.lower():
+        return '_'.join(x.split('.')[0].split('_')[-1:])
+    else:
+        return 'No se reconoce el nombre del archivo.'
+
+def get_sigma(x,muestras):
+    try:
+        return muestras[muestras.nombre==x].conductividad.values[0]
+    except:   
+        return 0 
+def get_esp(x,muestras):
+    try:
+        return muestras[muestras.nombre==x].espesor.values[0]*10e-3
+    except:   
+        return 0        
+    
 ## LEGACY
 
     # def normcorr(self):
