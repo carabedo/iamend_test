@@ -218,7 +218,27 @@ class exp():
                 fmu_fits[x]=fmu_fit             
             self.fmues=fmu_fits
 
-        elif len(args)==2:
+        elif len(args)==3:
+            str_muestra=args[0]
+            f0=args[1]
+            ff=args[2]
+
+            muestra=self.dznorm[self.dznorm.muestra.str.contains(str_muestra)].muestra.unique()
+            coil_eff=self.coil
+            fmu_fits={}
+            name=muestra
+            row=self.info[self.info.muestras.str.contains(x)]
+            espesor=row.espesor.values[0]
+            sigma=row.conductividad.values[0]
+            dzucorrnorm=self.dznorm[self.dznorm.muestra == x].dzcorrnorm.values
+            fmu_fit=fit.fmu(self.f,coil_eff,n_splits_f,dzucorrnorm,sigma,espesor,name)             
+            for fn in range(n_splits_f):
+                fo=int(fmu_fit['fs'][fn][0]/1000)
+                ff=int(fmu_fit['fs'][fn][-1]/1000)
+                self.info.loc[self.info.muestras==x,'mu '+str(fo)+'k-'+str(ff)+'k']=fmu_fit['mues'][fn]   
+            fmu_fits[x]=fmu_fit             
+            self.fmues=fmu_fits
+
             print('fiteo desde A a B')    
 
     # ploteos
@@ -257,27 +277,3 @@ class exp():
     def __repr__(self):
         return f'Experimento ({self.path})'
 
-## LEGACY
-
-    # def normcorr(self):
-    #     '''
-    #     Metodo que corrije las mediciones utilizando el benchmark harrison(xxxx)
-    #     '''
-    #     try:
-    #         index_file_aire=self.files.index[self.files.str.lower().str.contains('aire')].values[0]
-    #         self.index_aire=index_file_aire
-    #         self.file_aire=self.files[index_file_aire]
-    #         # diccionario con las variaciones de impedancias
-    #         # corregidas y normalizadas (re + 1j imag)
-    #         dict_dzcorrnorm,data_test=so.corrnorm(self,index_file_aire)
-    #         self.data_test=data_test
-    #         df=pd.DataFrame(dict_dzcorrnorm)
-    #         df['f']=self.f
-    #         dfdz=pd.melt(df,id_vars=df.columns[-1], var_name='muestra',value_name='dzcorrnorm')
-    #         dfdz['imag']=np.imag(dfdz['dzcorrnorm'])
-    #         dfdz['real']=np.real(dfdz['dzcorrnorm'])
-    #         dfdz['muestra']=dfdz['muestra'].astype(int).map(pd.Series(self.files))
-    #         dfdz['muestra']=dfdz['muestra'].apply(lambda x: x.split('_')[-1].split('.')[0])
-    #         self.dznorm=dfdz
-    #     except:
-    #         print('Falta el archivo con la medicion de la impedancia en aire.')
