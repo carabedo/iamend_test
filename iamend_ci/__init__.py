@@ -14,6 +14,7 @@ import plotly.express as px
 #esto sirve para no tener daramas con el path en windows/unix
 from pathlib import Path
 from sklearn.metrics import r2_score as R2
+import logging
 
 class DataFrameCI(pd.DataFrame):
     # construyo esta clase para extender la funcionalidad 
@@ -29,7 +30,11 @@ class DataFrameCI(pd.DataFrame):
         self['idznorm']=self['imag']/(self['2*pi*f']*self.l0)
         self['repeticion']=self['repeticion'].astype(str)
         return px.scatter(self, x='f',y='idznorm',color='repeticion',log_x=True)
-
+    
+    def repx(self):
+        self['repeticion']=self['repeticion'].astype(str)
+        return px.scatter(self, x='f',y='real',color='repeticion',log_x=True)
+    
 def get_id(x):
     if 'aire'in x.lower():
         return 'aire'
@@ -101,12 +106,6 @@ class exp():
         except Exception as e:
             print('No se pudieron cargar los archivos. Error: ', e)
 
-
-
-
-
-
-
     def normcorr_dict(self):
         '''
         Metodo que corrije las mediciones utilizando el benchmark harrison(xxxx)
@@ -126,22 +125,34 @@ class exp():
         except Exception as e:
             print(e)
 
-
-
-
-
-    def fitpatron(self):
+    def fitpatron(self,param_geo='z1',plot=False):
         try:
-            indice_patron=self.info[self.info.muestras.str.startswith('P')].iloc[0].name
-            dzcorrnorm=self.dznorm[self.dznorm.muestra == self.info.iloc[indice_patron].muestras].dzcorrnorm.values
-            esp=self.info.espesor.iloc[indice_patron]
-            sigma=self.info.conductividad.iloc[indice_patron]
-            z1eff=fit.z1(self.f,self.coil,dzcorrnorm,esp,sigma,self.files[indice_patron])
-            self.z1eff=z1eff[0]
-            self.coil[4]=self.z1eff
+            if param_geo == 'z1':
+                indice_patron=self.info[self.info.muestras.str.startswith('P')].iloc[0].name
+                dzcorrnorm=self.dznorm[self.dznorm.muestra == self.info.iloc[indice_patron].muestras].dzcorrnorm.values
+                esp=self.info.espesor.iloc[indice_patron]
+                sigma=self.info.conductividad.iloc[indice_patron]
+                z1eff=fit.z1(self.f,self.coil,dzcorrnorm,esp,sigma,self.files[indice_patron])
+                self.z1eff=z1eff[0]
+                self.coil[4]=self.z1eff
+            elif param_geo == 'N':
+                indice_patron=self.info[self.info.muestras.str.startswith('P')].iloc[0].name
+                dzcorrnorm=self.dznorm[self.dznorm.muestra == self.info.iloc[indice_patron].muestras].dzcorrnorm.values
+                esp=self.info.espesor.iloc[indice_patron]
+                sigma=self.info.conductividad.iloc[indice_patron]
+                Neff=fit.N(self.f,self.coil,dzcorrnorm,esp,sigma,self.files[indice_patron])
+                self.Neff=Neff[0]
+                self.coil[3]=self.Neff
+
+            if plot == True:
+                pb.plot_fit_patron(self,param_geo)
+
             return True
-        except:
-            print('No se encuentra medicion sobre el patron, defina z1eff manualmente')               
+        
+        except Exception as e:
+            print(e)   
+            logging.exception("An exception was thrown!")   
+                    
             return False
 
     def fitmues(self,figs=True):
@@ -277,3 +288,27 @@ class exp():
     def __repr__(self):
         return f'Experimento ({self.path})'
 
+## LEGACY
+
+    # def normcorr(self):
+    #     '''
+    #     Metodo que corrije las mediciones utilizando el benchmark harrison(xxxx)
+    #     '''
+    #     try:
+    #         index_file_aire=self.files.index[self.files.str.lower().str.contains('aire')].values[0]
+    #         self.index_aire=index_file_aire
+    #         self.file_aire=self.files[index_file_aire]
+    #         # diccionario con las variaciones de impedancias
+    #         # corregidas y normalizadas (re + 1j imag)
+    #         dict_dzcorrnorm,data_test=so.corrnorm(self,index_file_aire)
+    #         self.data_test=data_test
+    #         df=pd.DataFrame(dict_dzcorrnorm)
+    #         df['f']=self.f
+    #         dfdz=pd.melt(df,id_vars=df.columns[-1], var_name='muestra',value_name='dzcorrnorm')
+    #         dfdz['imag']=np.imag(dfdz['dzcorrnorm'])
+    #         dfdz['real']=np.real(dfdz['dzcorrnorm'])
+    #         dfdz['muestra']=dfdz['muestra'].astype(int).map(pd.Series(self.files))
+    #         dfdz['muestra']=dfdz['muestra'].apply(lambda x: x.split('_')[-1].split('.')[0])
+    #         self.dznorm=dfdz
+    #     except:
+    #         print('Falta el archivo con la medicion de la impedancia en aire.')

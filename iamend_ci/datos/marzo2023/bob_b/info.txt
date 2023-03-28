@@ -1,0 +1,5 @@
+archivo,conductividad,espesor,bobina
+Exp_1010_Aire.csv,0,0,b
+Exp_1010_M0.csv,0,0,b
+Exp_1010_M2-347.csv,0,0,b
+Exp_1010_P057.csv,0,0,b

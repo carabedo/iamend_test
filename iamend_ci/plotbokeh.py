@@ -2,8 +2,44 @@ from bokeh.io import output_notebook, curdoc  # output_file
 from bokeh.plotting import figure, show
 from bokeh.layouts import row, column, gridplot
 import numpy as np
+import iamend_ci.theo as theo	
+import logging
 
 output_notebook()
+
+def plot_fit_patron(exp,param_geo, altura=500,ancho=600):
+    tool_list = ['box_zoom', 'reset']
+    x=exp.f
+    muestra='P'
+    try:
+        muestra_name=exp.dznorm[exp.dznorm.muestra.str.contains(muestra.upper())].muestra.values[0]
+
+        bobina_effectiva=exp.coil
+        l0=bobina_effectiva[-1]
+        w=2*np.pi*x
+        x0=w*l0
+
+        indice_patron=exp.info[exp.info.muestras.str.startswith('P')].iloc[0].name
+        ymeas=exp.dznorm[exp.dznorm.muestra == muestra_name].imag.values
+        espesorpatron=exp.info.espesor.iloc[indice_patron]
+        sigmapatron=exp.info.conductividad.iloc[indice_patron]
+
+        yteo=theo.dzD(exp.f,bobina_effectiva,sigmapatron,espesorpatron,1,3000).imag/x0
+
+
+        plot1 = figure( x_axis_label='f[Hz]',y_axis_label='im(dz)/x0',height=altura, width=ancho,
+                         tools=tool_list,x_axis_type="log")
+        #scatter ymeas
+        plot1.circle(x, ymeas)
+        #linea ajuste yteo
+        plot1.line(x=x, y=yteo,
+                    line_color="#f46d43", line_width=2, 
+                    line_alpha=0.6)
+        show(plot1)
+    except Exception as e:
+        logging.exception('Error')   
+
+
 
 
 
