@@ -138,6 +138,16 @@ class exp():
                 self.Neff=Neff[0]
                 self.coil[3]=self.Neff
 
+            elif param_geo == 'r2':
+                indice_patron=self.info[self.info.muestras.str.startswith('P')].iloc[0].name
+                dzcorrnorm=self.dznorm[self.dznorm.muestra == self.info.iloc[indice_patron].muestras].dzcorrnorm.values
+                esp=self.info.espesor.iloc[indice_patron]
+                sigma=self.info.conductividad.iloc[indice_patron]
+
+                r2eff=fit.r2(self.f,self.coil,dzcorrnorm,esp,sigma,rango=rango)
+                self.r2eff=r2eff[0]
+                self.coil[1]=self.r2eff
+
             if plot == True:
                 pb.plot_fit_patron(self,param_geo)
 

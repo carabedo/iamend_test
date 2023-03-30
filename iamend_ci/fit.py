@@ -51,6 +51,54 @@ def z1(f,bo,dzucorrnorm,dpatron,sigma,rango):
     # z1=bo[4]
     # l0=bo[5]
 
+
+def r2(f,bo,dzucorrnorm,dpatron,sigma,rango):
+    
+    """z1 (frecuencia, bobina, datacorr, n, dpatron,sigma, mur)
+    Ajuste del lift-off
+    Parameters
+    ----------
+    f : array_like, vector con las frecuencias
+    datacorr : array_like, matriz con las mediciones
+    bo: array_like, vector con los parametros geometricos de la bobina
+    datacorr: array_like, matrix con las mediciones corregidas y nromalizadas
+    n : int, indice de la medicion 
+    dpatron: float, espesor muestra
+    sigma : float, conductividad muestra
+    mur: float, permeabilidad muestra
+    """    
+    mur=1
+
+    def fun_r2(x,b):
+        r1=bo[0]
+        r2=b
+        dh=bo[2]
+        N=bo[3]
+        z1=bo[4]
+        bob=[r1,r2,dh,N,z1,1]
+        return theo.dzD(x,bob,sigma,dpatron,mur,3000).imag/x0
+    #[f,z0,dzucorr,w]
+    l0=bo[-1]
+    w=2*np.pi*f
+    x0=w*l0
+      
+    xmeas=f
+    ymeas=dzucorrnorm.imag   
+    if rango:
+        bound_min=rango[0]
+        bound_max=rango[1]
+        p0=(bound_max+bound_min)/2
+        fpar, fcov=optimize.curve_fit(fun_r2, xmeas, ymeas, p0=[p0], bounds=(bound_min,bound_max))
+    else:
+        bound_min=bo[0]
+        bound_max=10e-3
+        p0=(bound_max+bound_min)/2
+        fpar, fcov=optimize.curve_fit(fun_r2, xmeas, ymeas, p0=[p0], bounds=(bound_min,bound_max))
+
+    print('r2 =',fpar[0]*1000,'mm')
+    return(fpar)
+
+
 def N(f,bo,dzucorrnorm,espesorpatron,sigmapatron,rango):
     mupatron=1
 
