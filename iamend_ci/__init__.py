@@ -175,7 +175,7 @@ class exp():
                     dzucorrnorm=self.dznorm[self.dznorm.muestra == x].dzcorrnorm.values
 
                     #mu(f,bo_eff,dzucorrnorm,dpatron,sigma, name):
-                    fpar=fit.mu(self.f,self.coil,dzucorrnorm,esp,sigma,row.archivo.values[0])
+                    fpar,fcov=fit.mu(self.f,self.coil,dzucorrnorm,esp,sigma,row.archivo.values[0])
                     self.info.loc[row.index.values[0],'mueff']=fpar
                     x0=2*np.pi*self.f*self.coil[-1]
                     yteo=theo.dzD(self.f,self.coil,sigma,esp,fpar,1500)/x0
@@ -198,7 +198,7 @@ class exp():
                 dzucorrnorm=self.dznorm[self.dznorm.muestra == x].dzcorrnorm.values
 
                 #mu(f,bo_eff,dzucorrnorm,dpatron,sigma, name):
-                fpar=fit.mu(self.f,self.coil,dzucorrnorm,esp,sigma,row.archivo.values[0])
+                fpar,fcov=fit.mu(self.f,self.coil,dzucorrnorm,esp,sigma,row.archivo.values[0])
                 self.info.loc[row.index.values[0],'mueff']=fpar
                 x0=2*np.pi*self.f*self.coil[-1]
                 yteo=theo.dzD(self.f,self.coil,sigma,esp,fpar,1500)/x0

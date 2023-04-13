@@ -160,7 +160,9 @@ def mu(f,bo_eff,dzucorrnorm,dpatron,sigma, name):
     # para_eff={'name' : 'mu_r', 'value' : mur}
     #fig=imlogfit(f,[ymeas, yteo],para_eff,name)
     #print('mu_r_eff =',fpar[0])
-    return(fpar)
+
+    #nuevo: fcov como output
+    return(fpar, fcov)
 
 
 def fmu(f,coil_eff,n_splits_f,dzcorrnorm,sigma,espesor,name):

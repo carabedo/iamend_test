@@ -156,6 +156,28 @@ def stats_dict(exp):
 
     return data_mean,data_std,data_test
 
+
+
+def corrnorm(exp,muestra,repeticion):
+    data_mean,data_std,data_test=stats_dict(exp)
+    w=np.pi*2*exp.f
+    z0=exp.bobina['R0']+1j*w*exp.bobina['L0']
+    x0=w*exp.bobina['L0']  
+    try:
+        # correccion muestras
+        za=data_mean['aire']
+        indice_muestra=exp.info[exp.info.muestras == muestra].index.values[0]
+        df_muestra=exp.data[indice_muestra]
+        df_repeticion=df_muestra[df_muestra.repeticion == repeticion]
+        zu_serie=df_repeticion.real + 1j*df_repeticion.imag
+        zu=zu_serie.values
+        dzucorr=((1/(1/zu - 1/za+ 1/z0))-z0  )				
+        dzucorrnorm=dzucorr/x0
+        return dzucorrnorm
+    except Exception as e:
+        print(e)
+
+
 ###### LEGACY
 
 # def stats(exp):
