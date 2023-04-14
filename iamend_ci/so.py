@@ -120,7 +120,7 @@ def corrnorm_dict(exp):
 
             # con el .values le saco los indices		
             datacorrnorm_test[muestra]=dzucorr.values/x0
-        return datacorrnorm,data_test,datacorrnorm_test
+        return datacorrnorm,data_test,datacorrnorm_test,za
     except:
         print('No se encontro archivo con medicion en aire.')
 

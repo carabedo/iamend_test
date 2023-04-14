@@ -78,11 +78,11 @@ class exp():
         try:
             # diccionario con las variaciones de impedancias
             # corregidas y normalizadas (re + 1j imag)
-            dict_dzcorrnorm,data_test,dict_dzcorrnorm_test=so.corrnorm_dict(self)
+            dict_dzcorrnorm,data_test,dict_dzcorrnorm_test,za=so.corrnorm_dict(self)
 
             self.data_test=data_test
             self.dznorm_test_dict=dict_dzcorrnorm_test
-
+            self.za=za
             df=pd.DataFrame(dict_dzcorrnorm)
             df_test=pd.DataFrame(dict_dzcorrnorm_test)
             df['f']=self.f
