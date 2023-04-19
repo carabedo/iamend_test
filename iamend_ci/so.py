@@ -3,6 +3,9 @@ import pandas as pd
 import csv
 import plotly.express as px
 import numpy as np
+#esto sirve para no tener daramas con el path en windows/unix
+from pathlib import Path #falta implementar
+
 
 def read(file, separador):
     # lee archivo csv del solatron
@@ -45,29 +48,44 @@ class DataFrameCI(pd.DataFrame):
         self['repeticion']=self['repeticion'].astype(str)
         return px.scatter(self, x='f',y='real',color='repeticion',log_x=True)
     
-def load(path,bobina,separador=';'):
-    """ carga archivos en la carpeta actual, todos deben pertenecer a un mismo experimento, mismas frecuencias y misma cantidad de repeticiones, se le puede asginar la direccion en disco de la carpeta a la variable path (tener cuidado con los //), si path=0 abre una ventana de windows para elegirla manualmente
-    --------------------------------------------------------------------------------------
-    devuelve una lista: 
-        data: lista de los df de cada archivo, cada indice es una matriz con los datos crudos de cada archivo
-        
-        
-    """    
-    
-    folder_path = path
-    filepaths=[]
-    for (dirpath, dirnames, filenames) in os.walk(folder_path):
-        filenames.sort()
-        for i,j in enumerate(filenames):
-            filepaths.extend([dirpath + '/'+j])
-        break
+def load(exp,separador=';'):
+    folder_path=exp.path
+    filepaths=exp.info.archivo.values
+
+    #hay que remplazar por diccionario se mezclan los datos.
     data=list()
     for k,filepath in enumerate(filepaths):
         if ('info' not in filepath) & ('csv' in filepath):
-            df=read(filepath,separador)
-            dfci=DataFrameCI(filename=filenames[k],bobina=bobina,data=df)
+            df=read(folder_path+'/'+filepath,separador)
+            dfci=DataFrameCI(filename=filepath,bobina=exp.bobina,data=df)
             data.append(dfci) 
     return data  
+
+# def load(path,bobina,separador=';'):
+#     """ carga archivos en la carpeta actual, todos deben pertenecer a un mismo experimento, mismas frecuencias y misma cantidad de repeticiones, se le puede asginar la direccion en disco de la carpeta a la variable path (tener cuidado con los //), si path=0 abre una ventana de windows para elegirla manualmente
+#     --------------------------------------------------------------------------------------
+#     devuelve una lista: 
+#         data: lista de los df de cada archivo, cada indice es una matriz con los datos crudos de cada archivo
+        
+        
+#     """    
+    
+#     folder_path = path
+#     filepaths=[]
+#     for (dirpath, dirnames, filenames) in os.walk(folder_path):
+#         filenames.sort()
+#         for i,j in enumerate(filenames):
+#             filepaths.extend([dirpath + '/'+j])
+#         break
+
+#     #hay que remplazar por diccionario se mezclan los datos.
+#     data=list()
+#     for k,filepath in enumerate(filepaths):
+#         if ('info' not in filepath) & ('csv' in filepath):
+#             df=read(filepath,separador)
+#             dfci=DataFrameCI(filename=filenames[k],bobina=bobina,data=df)
+#             data.append(dfci) 
+#     return data  
 
 
 def getf(exp):

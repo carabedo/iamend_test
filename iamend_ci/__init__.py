@@ -50,9 +50,9 @@ class exp():
             # Cargo todos los cvs como diccionario de DFci
 
             try:
-                self.data=so.load(self.path,bobina=self.bobina)
+                self.data=so.load(self)
             except:
-                self.data=so.load(self.path,bobina=self.bobina,separador=',')
+                self.data=so.load(self,separador=',')
 
 
             print(self.info)  
