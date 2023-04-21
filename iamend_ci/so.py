@@ -61,31 +61,6 @@ def load(exp,separador=';'):
             data.append(dfci) 
     return data  
 
-# def load(path,bobina,separador=';'):
-#     """ carga archivos en la carpeta actual, todos deben pertenecer a un mismo experimento, mismas frecuencias y misma cantidad de repeticiones, se le puede asginar la direccion en disco de la carpeta a la variable path (tener cuidado con los //), si path=0 abre una ventana de windows para elegirla manualmente
-#     --------------------------------------------------------------------------------------
-#     devuelve una lista: 
-#         data: lista de los df de cada archivo, cada indice es una matriz con los datos crudos de cada archivo
-        
-        
-#     """    
-    
-#     folder_path = path
-#     filepaths=[]
-#     for (dirpath, dirnames, filenames) in os.walk(folder_path):
-#         filenames.sort()
-#         for i,j in enumerate(filenames):
-#             filepaths.extend([dirpath + '/'+j])
-#         break
-
-#     #hay que remplazar por diccionario se mezclan los datos.
-#     data=list()
-#     for k,filepath in enumerate(filepaths):
-#         if ('info' not in filepath) & ('csv' in filepath):
-#             df=read(filepath,separador)
-#             dfci=DataFrameCI(filename=filenames[k],bobina=bobina,data=df)
-#             data.append(dfci) 
-#     return data  
 
 
 def getf(exp):
@@ -107,14 +82,14 @@ def getf(exp):
 
 
 
-def corrnorm_dict(exp):
+def corrnorm_dict(exp,test=True,dropfirst=True):
     """ corrige y normaliza los datos, toma como input el vector de frecuencias, la info de la bobina y los datos
         devuelve una lista de arrays, cada array es la impedancia compleja corregida y normalizada para cada frecuencia, parte real y parte imaginaria
         para recuperar la parte real  (.real) e imaginaria (.imag)
         
         z=re+i*2pi*f*l0
     """ 
-    data_mean,data_std,data_test=stats_dict(exp)
+    data_mean,data_std,data_test=stats_dict(exp,test=test,dropfirst=dropfirst)
 
     w=np.pi*2*exp.f
     
@@ -122,45 +97,54 @@ def corrnorm_dict(exp):
     x0=w*exp.bobina['L0']  
     try:
         # correccion muestras
-        za=data_mean['aire']
+        filename_aire=exp.info.archivo[exp.info.archivo.str.contains('aire')].values[0]
+        za=data_mean[filename_aire]
         datacorrnorm={}
         datacorrnorm_test={}
-        muestras=[x for x in data_mean.keys() if not 'aire' in x]
-        for m,muestra in enumerate(muestras):
-            z_mean=data_mean[muestra]
+        filename_muestras=[x for x in data_mean.keys() if not filename_aire in x]
+
+        for m,filename_muestra in enumerate(filename_muestras):
+            z_mean=data_mean[filename_muestra]
             zu=z_mean
             dzucorr=((1/(1/zu - 1/za+ 1/z0))-z0  )				
-            datacorrnorm[muestra]=dzucorr/x0
-
+            datacorrnorm[filename_muestra]=dzucorr/x0
             # correcion test
-            zu_test=data_test[muestra].real+1j*data_test[muestra].imag
-            dzucorr=((1/(1/zu_test - 1/za+ 1/z0))-z0  )		
-
+            if test==True:
+                zu_test=data_test[filename_muestra].real+1j*data_test[filename_muestra].imag
+                dzucorr=((1/(1/zu_test - 1/za+ 1/z0))-z0  )	
+                datacorrnorm_test[filename_muestra]=dzucorr.values/x0
             # con el .values le saco los indices		
-            datacorrnorm_test[muestra]=dzucorr.values/x0
-        return datacorrnorm,data_test,datacorrnorm_test,za
+        if test==True:
+            return datacorrnorm,data_test,datacorrnorm_test,za
+        else:
+            return datacorrnorm,za
     except:
-        print('No se encontro archivo con medicion en aire.')
+        print('No se encontro archivo con medicion en aire. chau')
 
 
 
-def stats_dict(exp):
+def stats_dict(exp,test=True,dropfirst=True):
     ''' excluyendo la primer repeticion para cada muestra devuelve lista de valores medios por f y sus desvios'''
     data_mean={}
     data_std={}
     data_test={}
 
     for m,datamuestra_m in enumerate(exp.data):
-        #excluimos la primer repeticion
         filename=datamuestra_m.filename
-        name=exp.info[exp.info.archivo==filename].muestras.values[0]
 
-        df=datamuestra_m[datamuestra_m.repeticion != 1 ]
+        #excluimos la primer repeticion
+        if dropfirst==True:
+            df=datamuestra_m[datamuestra_m.repeticion != 1 ]
+        else:
+            df=datamuestra_m
+        
         #separamos de manera aleatoria un valor de impedancia para cada frecuencia
-        df_test=df.groupby('f').sample(1)
+        if test==True:
+            df_test=df.groupby('f').sample(1)
+            #boramos del dataset original esos valores
+            df.loc[df_test.index,'imag']=np.nan
+            data_test[filename]=df_test
 
-        #boramos del dataset original esos valores
-        df.loc[df_test.index,'imag']=np.nan
         #calculamos mean y std 
         
         real_mean=df.groupby('f')['real'].mean().values
@@ -168,23 +152,22 @@ def stats_dict(exp):
         real_std=df.groupby('f')['real'].std().values
         imag_std=df.groupby('f')['imag'].std().values
 
-        data_mean[name]=real_mean+1j*imag_mean
-        data_std[name]=real_std+1j*imag_std
-        data_test[name]=df_test
+        data_mean[filename]=real_mean+1j*imag_mean
+        data_std[filename]=real_std+1j*imag_std
 
     return data_mean,data_std,data_test
 
 
 
-def corrnorm(exp,muestra,repeticion):
-    data_mean,data_std,data_test=stats_dict(exp)
+def corrnorm(exp,filename_muestra,repeticion,dropfirst,test=False):
+    data_mean,data_std,data_test=stats_dict(exp,test=test,dropfirst=dropfirst)
     w=np.pi*2*exp.f
     z0=exp.bobina['R0']+1j*w*exp.bobina['L0']
     x0=w*exp.bobina['L0']  
     try:
-        # correccion muestras
-        za=data_mean['aire']
-        indice_muestra=exp.info[exp.info.muestras == muestra].index.values[0]
+        filename_aire=exp.info.archivo[exp.info.archivo.str.contains('aire')].values[0]
+        za=data_mean[filename_aire]
+        indice_muestra=exp.info[exp.info.archivo == filename_muestra].index.values[0]
         df_muestra=exp.data[indice_muestra]
         df_repeticion=df_muestra[df_muestra.repeticion == repeticion]
         zu_serie=df_repeticion.real + 1j*df_repeticion.imag

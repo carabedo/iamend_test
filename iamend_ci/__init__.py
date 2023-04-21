@@ -21,7 +21,7 @@ class exp():
     ''' Clase Experimentos:
     Se instancian con el nombre de la carpeta donde estan los archivos del solatron. Un carpeta para cada bobina, todo el experimento necesita una medicion en aire. Medicion en un patron para el ajuste efectivo del lift-off.
     '''
-    def __init__(self,path):
+    def __init__(self,path,normcorr=True,test=True,dropfirst=True):
         self.path=path
         try:
             infopath=[x for x in os.listdir(path) if 'info' in x][0]
@@ -63,39 +63,56 @@ class exp():
 
             # Genero como atributos los dataframes
             for i,df_ci in enumerate(self.data):
-
                 setattr(self,'df'+ str(i),df_ci)
 
-            self.normcorr_dict()
+            if normcorr==True:
+                self.normcorr_dict(test=test,dropfirst=dropfirst)
 
         except Exception as e:
             print('No se pudieron cargar los archivos. Error: ', e)
 
-    def normcorr_dict(self):
+
+
+    def normcorr_dict(self,test=True,dropfirst=True):
         '''
         Metodo que corrije las mediciones utilizando el benchmark harrison(xxxx)
         '''
         try:
             # diccionario con las variaciones de impedancias
             # corregidas y normalizadas (re + 1j imag)
-            dict_dzcorrnorm,data_test,dict_dzcorrnorm_test,za=so.corrnorm_dict(self)
+            if test==True:
+                dict_dzcorrnorm,data_test,dict_dzcorrnorm_test,za=so.corrnorm_dict(self,test=test,dropfirst=dropfirst)
+                # guardamos test y medicion en aire
+                self.data_test=data_test
+                self.dznorm_test_dict=dict_dzcorrnorm_test
+                self.za=za
+                #
+                df=pd.DataFrame(dict_dzcorrnorm)
+                df_test=pd.DataFrame(dict_dzcorrnorm_test)
+                df['f']=self.f
+                df_test['f']=self.f
+                dfdz=pd.melt(df,id_vars=df.columns[-1], var_name='muestra',value_name='dzcorrnorm')
+                dfdz['imag']=np.imag(dfdz['dzcorrnorm'])
+                dfdz['real']=np.real(dfdz['dzcorrnorm'])
+                self.dznorm=dfdz
+                dfdz_test=pd.melt(df_test,id_vars=df.columns[-1], var_name='muestra',value_name='dzcorrnorm')
+                dfdz_test['imag']=np.imag(dfdz_test['dzcorrnorm'])
+                dfdz_test['real']=np.real(dfdz_test['dzcorrnorm'])
+                self.dznorm=dfdz
+                self.dznorm_test=dfdz_test
+            else:
+                dict_dzcorrnorm,za=so.corrnorm_dict(self,test=test,dropfirst=dropfirst)
+                # guardamos medicion en aire        
+                self.za=za
+                df=pd.DataFrame(dict_dzcorrnorm)
+                df['f']=self.f
+                dfdz=pd.melt(df,id_vars=df.columns[-1], var_name='muestra',value_name='dzcorrnorm')
+                dfdz['imag']=np.imag(dfdz['dzcorrnorm'])
+                dfdz['real']=np.real(dfdz['dzcorrnorm'])
+                self.dznorm=dfdz
+                self.dznorm=dfdz
 
-            self.data_test=data_test
-            self.dznorm_test_dict=dict_dzcorrnorm_test
-            self.za=za
-            df=pd.DataFrame(dict_dzcorrnorm)
-            df_test=pd.DataFrame(dict_dzcorrnorm_test)
-            df['f']=self.f
-            df_test['f']=self.f
-            dfdz=pd.melt(df,id_vars=df.columns[-1], var_name='muestra',value_name='dzcorrnorm')
-            dfdz['imag']=np.imag(dfdz['dzcorrnorm'])
-            dfdz['real']=np.real(dfdz['dzcorrnorm'])
-            self.dznorm=dfdz
-            dfdz_test=pd.melt(df_test,id_vars=df.columns[-1], var_name='muestra',value_name='dzcorrnorm')
-            dfdz_test['imag']=np.imag(dfdz_test['dzcorrnorm'])
-            dfdz_test['real']=np.real(dfdz_test['dzcorrnorm'])
-            self.dznorm=dfdz
-            self.dznorm_test=dfdz_test
+
 
         except Exception as e:
             print(e)
@@ -115,35 +132,35 @@ class exp():
 
 
     # Ajustes
-    def fitpatron(self,param_geo='z1',plot=False, rango = None):
+    def fitpatron(self,patron_filename='auto',param_geo='z1',plot=False, rango = None):
+
+        if patron_filename=='auto':
+            indice_patron=self.info[self.info.muestras.str.startswith('P')].iloc[0].name
+            dzcorrnorm=self.dznorm[self.dznorm.muestra == self.info.iloc[indice_patron].archivo].dzcorrnorm.values
+            esp=self.info.espesor.iloc[indice_patron]
+            sigma=self.info.conductividad.iloc[indice_patron]
+        else:
+            indice_patron=self.info[self.info.archivo == patron_filename].iloc[0].name
+            dzcorrnorm=self.dznorm[self.dznorm.muestra == patron_filename].dzcorrnorm.values
+            esp=self.info.espesor.iloc[indice_patron]
+            sigma=self.info.conductividad.iloc[indice_patron]
+
+
         try:
             if param_geo == 'z1':
-                indice_patron=self.info[self.info.muestras.str.startswith('P')].iloc[0].name
-                dzcorrnorm=self.dznorm[self.dznorm.muestra == self.info.iloc[indice_patron].muestras].dzcorrnorm.values
-                esp=self.info.espesor.iloc[indice_patron]
-                sigma=self.info.conductividad.iloc[indice_patron]
-                
+             
                 z1eff=fit.z1(self.f,self.coil,dzcorrnorm,esp,sigma,self.files[indice_patron])
 
                 self.z1eff=z1eff[0]
                 self.coil[4]=self.z1eff
 
             elif param_geo == 'N':
-                indice_patron=self.info[self.info.muestras.str.startswith('P')].iloc[0].name
-                dzcorrnorm=self.dznorm[self.dznorm.muestra == self.info.iloc[indice_patron].muestras].dzcorrnorm.values
-                esp=self.info.espesor.iloc[indice_patron]
-                sigma=self.info.conductividad.iloc[indice_patron]
 
                 Neff=fit.N(self.f,self.coil,dzcorrnorm,esp,sigma,rango=rango)
                 self.Neff=Neff[0]
                 self.coil[3]=self.Neff
 
             elif param_geo == 'r2':
-                indice_patron=self.info[self.info.muestras.str.startswith('P')].iloc[0].name
-                dzcorrnorm=self.dznorm[self.dznorm.muestra == self.info.iloc[indice_patron].muestras].dzcorrnorm.values
-                esp=self.info.espesor.iloc[indice_patron]
-                sigma=self.info.conductividad.iloc[indice_patron]
-
                 r2eff=fit.r2(self.f,self.coil,dzcorrnorm,esp,sigma,rango=rango)
                 self.r2eff=r2eff[0]
                 self.coil[1]=self.r2eff

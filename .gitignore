@@ -9,3 +9,5 @@ iamend_ci/datos/marzo2023/.DS_Store
 .DS_Store
 .ipynb_checkpoints/test mu -checkpoint.ipynb
 *.pyc
+iamend_ci/__pycache__/__init__.cpython-310.pyc
+iamend_ci/__pycache__/so.cpython-310.pyc
