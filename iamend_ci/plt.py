@@ -2,19 +2,42 @@
 import iamend_ci.theo as theo												
 import numpy as np
 import matplotlib.pyplot as plt
-# plt.ion()
-# import mpld3
-# mpld3.enable_notebook()
-# from mpld3 import plugins
-# import plotly.graph_objs as go
-# import plotly
-# plotly.offline.init_notebook_mode(connected=True)
-# import tkinter as tk
-# from tkinter import filedialog
+from bokeh.io import output_notebook, curdoc  # output_file
+from bokeh.plotting import figure, show
+from bokeh.palettes import Spectral4
 
-
-
-
+class Fig:
+    def __init__(self,altura=500,ancho=600):
+        self.tool_list = ['box_zoom', 'reset']
+        self.altura=altura
+        self.ancho=ancho
+        self.fig= figure( x_axis_label='f[Hz]',y_axis_label='im(dz)/x0',height=self.altura, width=self.ancho,tools=self.tool_list,x_axis_type="log")
+        self.color=0
+    def add(self,exp,indice_archivo,tipo):
+        x=exp.f
+        bobina_effectiva=exp.coil
+        l0=bobina_effectiva[-1]
+        w=exp.w
+        x0=w*l0
+        if tipo == 'raw':
+            df=exp.data[indice_archivo]
+            grouped = df.groupby('repeticion')
+            for name, repeticion in grouped:
+                ymeas=repeticion.imag
+                #scatter ymeas
+                self.fig.circle(x, ymeas/x0 ,fill_color=None,color=Spectral4[self.color],alpha=0.8,)      
+            self.fig.line(x,df.groupby('f').mean().imag/x0,legend_label=df.filename,color=Spectral4[self.color])
+            self.fig.legend.click_policy="hide"
+            self.color+=1
+        elif tipo == 'corr':
+            archivo_muestra=exp.info.iloc[indice_archivo].archivo
+            df=exp.dznorm.query('muestra=="'+archivo_muestra+'"')
+            ymeas=df.dzcorrnorm.values.imag
+            self.fig.line(x, ymeas ,legend_label=archivo_muestra,color=Spectral4[self.color], alpha=0.8)
+            self.fig.legend.click_policy="hide"
+            self.color+=1
+    def show(self):
+        show(self.fig)
 
 
 ## matplotlib

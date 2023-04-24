@@ -7,26 +7,21 @@ import logging
 
 output_notebook()
 
-def plot_fit_patron(exp,param_geo, altura=500,ancho=600):
+def plot_fit_patron(exp,param_geo,patron_filename):
+    altura=500
+    ancho=600
     tool_list = ['box_zoom', 'reset']
     x=exp.f
-    muestra='P'
+    bobina_effectiva=exp.coil
+    l0=bobina_effectiva[-1]
+    w=2*np.pi*x
+    x0=w*l0
     try:
-        muestra_name=exp.dznorm[exp.dznorm.muestra.str.contains(muestra.upper())].muestra.values[0]
-
-        bobina_effectiva=exp.coil
-        l0=bobina_effectiva[-1]
-        w=2*np.pi*x
-        x0=w*l0
-
-        indice_patron=exp.info[exp.info.muestras.str.startswith('P')].iloc[0].name
-        ymeas=exp.dznorm[exp.dznorm.muestra == muestra_name].imag.values
+        indice_patron=exp.info.query('archivo=="'+patron_filename+'"').index[0]
+        ymeas=exp.dznorm[exp.dznorm.muestra == patron_filename].imag.values
         espesorpatron=exp.info.espesor.iloc[indice_patron]
         sigmapatron=exp.info.conductividad.iloc[indice_patron]
-
         yteo=theo.dzD(exp.f,bobina_effectiva,sigmapatron,espesorpatron,1,3000).imag/x0
-
-
         plot1 = figure( x_axis_label='f[Hz]',y_axis_label='im(dz)/x0',height=altura, width=ancho,
                          tools=tool_list,x_axis_type="log")
         #scatter ymeas
@@ -84,20 +79,19 @@ def plot_fit_mues(exp):
         show(layout)
 
 
-def plot_fit_mu(exp,muestra,altura=500,ancho=600):
+def plot_fit_mu(exp,indice_muestra,altura=500,ancho=600):
     tool_list = ['box_zoom', 'reset']
     x=exp.f
-    try:
-        muestra_name=exp.dznorm[exp.dznorm.muestra.str.contains(muestra.upper())].muestra.values[0]
-        y=exp.dznorm[exp.dznorm.muestra == muestra_name].imag.values
-        yteo=exp.ypreds[muestra_name].imag
-        mur=exp.info[exp.info.muestras.str.contains(muestra.upper())].mueff.values[0]
-        plot1 = figure( title=muestra+' mueff = '+ str(mur.round(2)),x_axis_label='f[Hz]',y_axis_label='im(dz)/x0',height=altura, width=ancho, tools=tool_list,x_axis_type="log")
-        plot1.circle(x, y)
-        plot1.line(x=x, y=yteo, line_color="#f46d43", line_width=2, line_alpha=0.6)
-        show(plot1)
-    except:
-        print('No existe la muestra, revise .info')
+    archivo_muestra=exp.info.iloc[indice_muestra].archivo
+    y=exp.dznorm.query('muestra=="'+archivo_muestra+'"').imag.values
+    yteo=exp.ypreds[archivo_muestra].imag
+    mur=exp.info.iloc[indice_muestra].mueff
+    fig = figure( title=archivo_muestra+' mueff = '+ str(mur.round(2)),x_axis_label='f[Hz]',y_axis_label='im(dz)/x0',height=altura, width=ancho, tools=tool_list,x_axis_type="log")
+    fig.circle(x, y)
+    fig.line(x=x, y=yteo, line_color="#f46d43", line_width=2, line_alpha=0.6)
+    show(fig)
+    return fig
+
 
 def plot_fit_fmu(exp,muestra,altura=500,ancho=600):
     tool_list = ['box_zoom', 'reset']

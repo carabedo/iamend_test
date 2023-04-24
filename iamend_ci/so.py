@@ -99,6 +99,7 @@ def corrnorm_dict(exp,test=True,dropfirst=True):
         # correccion muestras
         filename_aire=exp.info.archivo[exp.info.archivo.str.contains('aire')].values[0]
         za=data_mean[filename_aire]
+
         datacorrnorm={}
         datacorrnorm_test={}
         filename_muestras=[x for x in data_mean.keys() if not filename_aire in x]
@@ -114,10 +115,12 @@ def corrnorm_dict(exp,test=True,dropfirst=True):
                 dzucorr=((1/(1/zu_test - 1/za+ 1/z0))-z0  )	
                 datacorrnorm_test[filename_muestra]=dzucorr.values/x0
             # con el .values le saco los indices		
+
+        medicion_aire={'filename_aire': filename_aire, 'za': za}
         if test==True:
-            return datacorrnorm,data_test,datacorrnorm_test,za
+            return datacorrnorm,data_test,datacorrnorm_test,medicion_aire
         else:
-            return datacorrnorm,za
+            return datacorrnorm,medicion_aire
     except:
         print('No se encontro archivo con medicion en aire. chau')
 

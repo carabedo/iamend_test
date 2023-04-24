@@ -42,7 +42,7 @@ def z1(f,bo,dzucorrnorm,dpatron,sigma,rango):
 
     fpar, fcov=optimize.curve_fit(funz1, xmeas, ymeas, p0=[1.1e-3], bounds=(0,2e-3))
     print('z1 =',fpar[0]*1000,'mm')
-    return(fpar)
+    return fpar,np.sqrt(fcov[0][0])
 
     # r1=bo[0]
     # r2=bo[1]
@@ -162,7 +162,7 @@ def mu(f,bo_eff,dzucorrnorm,dpatron,sigma, name):
     #print('mu_r_eff =',fpar[0])
 
     #nuevo: fcov como output
-    return(fpar, fcov)
+    return(fpar, np.sqrt(fcov[0][0]))
 
 
 def fmu(f,coil_eff,n_splits_f,dzcorrnorm,sigma,espesor,name):

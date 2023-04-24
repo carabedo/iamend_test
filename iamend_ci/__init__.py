@@ -81,11 +81,12 @@ class exp():
             # diccionario con las variaciones de impedancias
             # corregidas y normalizadas (re + 1j imag)
             if test==True:
-                dict_dzcorrnorm,data_test,dict_dzcorrnorm_test,za=so.corrnorm_dict(self,test=test,dropfirst=dropfirst)
+                dict_dzcorrnorm,data_test,dict_dzcorrnorm_test,medicion_aire=so.corrnorm_dict(self,test=test,dropfirst=dropfirst)
                 # guardamos test y medicion en aire
                 self.data_test=data_test
                 self.dznorm_test_dict=dict_dzcorrnorm_test
-                self.za=za
+                self.za=medicion_aire
+
                 #
                 df=pd.DataFrame(dict_dzcorrnorm)
                 df_test=pd.DataFrame(dict_dzcorrnorm_test)
@@ -100,10 +101,11 @@ class exp():
                 dfdz_test['real']=np.real(dfdz_test['dzcorrnorm'])
                 self.dznorm=dfdz
                 self.dznorm_test=dfdz_test
+                self.test=True
             else:
-                dict_dzcorrnorm,za=so.corrnorm_dict(self,test=test,dropfirst=dropfirst)
+                dict_dzcorrnorm,medicion_aire=so.corrnorm_dict(self,test=test,dropfirst=dropfirst)
                 # guardamos medicion en aire        
-                self.za=za
+                self.za=medicion_aire
                 df=pd.DataFrame(dict_dzcorrnorm)
                 df['f']=self.f
                 dfdz=pd.melt(df,id_vars=df.columns[-1], var_name='muestra',value_name='dzcorrnorm')
@@ -111,7 +113,7 @@ class exp():
                 dfdz['real']=np.real(dfdz['dzcorrnorm'])
                 self.dznorm=dfdz
                 self.dznorm=dfdz
-
+                self.test=False
 
 
         except Exception as e:
@@ -149,10 +151,12 @@ class exp():
         try:
             if param_geo == 'z1':
              
-                z1eff=fit.z1(self.f,self.coil,dzcorrnorm,esp,sigma,self.files[indice_patron])
+                z1eff,uz1eff=fit.z1(self.f,self.coil,dzcorrnorm,esp,sigma,self.files[indice_patron])
 
                 self.z1eff=z1eff[0]
+                self.uz1eff=uz1eff
                 self.coil[4]=self.z1eff
+                self.patron_fitgeo={'filename':patron_filename,'param_geo': param_geo}
 
             elif param_geo == 'N':
 
@@ -166,7 +170,7 @@ class exp():
                 self.coil[1]=self.r2eff
 
             if plot == True:
-                pb.plot_fit_patron(self,param_geo)
+                pb.plot_fit_patron(self,param_geo,patron_filename)
 
             return True
         
@@ -204,27 +208,27 @@ class exp():
                     self.info.loc[row.index.values[0],'R2']=r2
                 self.ypreds=yteos
         else:
-            muestras=self.dznorm[self.dznorm.muestra.str.contains('M')].muestra.unique()
-            self.info['mueff']=np.nan
-            self.info['R2']=np.nan
+            mylist = [self.za['filename_aire'], self.patron_fitgeo['filename']]
+            pattern = '|'.join(mylist)
+            muestras=self.info.archivo[~self.info.archivo.str.contains(pattern)]
             yteos={}
-            for x in muestras:
-                row=self.info[self.info.muestras.str.contains(x)]
-                esp=row.espesor.values[0]
-                sigma=row.conductividad.values[0]
-                dzucorrnorm=self.dznorm[self.dznorm.muestra == x].dzcorrnorm.values
-
+            for i in muestras.index:
+                row=self.info.iloc[i]
+                esp=row.espesor
+                sigma=row.conductividad
+                dzucorrnorm=self.dznorm[self.dznorm.muestra == row.archivo].dzcorrnorm.values
                 #mu(f,bo_eff,dzucorrnorm,dpatron,sigma, name):
-                fpar,fcov=fit.mu(self.f,self.coil,dzucorrnorm,esp,sigma,row.archivo.values[0])
-                self.info.loc[row.index.values[0],'mueff']=fpar
+                fpar,fcov=fit.mu(self.f,self.coil,dzucorrnorm,esp,sigma,row.archivo)
+                self.info.loc[i,'mueff']=fpar
+                self.info.loc[i,'umueff']=fcov
                 x0=2*np.pi*self.f*self.coil[-1]
                 yteo=theo.dzD(self.f,self.coil,sigma,esp,fpar,1500)/x0
-                yteos[x]=yteo
-
-                # validacion con test de la parte imaginaria
-                dzucorrnorm_test=self.dznorm_test[self.dznorm_test.muestra == x].dzcorrnorm.values
-                r2=R2(yteo.imag,dzucorrnorm_test.imag)
-                self.info.loc[row.index.values[0],'R2']=r2
+                yteos[row.archivo]=yteo
+                if self.test==True:
+                    # validacion con test de la parte imaginaria
+                    dzucorrnorm_test=self.dznorm_test[self.dznorm_test.muestra == x].dzcorrnorm.values
+                    r2=R2(yteo.imag,dzucorrnorm_test.imag)
+                    self.info.loc[i,'R2']=r2
             self.ypreds=yteos
 
     def fitfmues(self,*args,**kwargs):
@@ -293,8 +297,9 @@ class exp():
     def muesplot(self):
         pb.plot_fit_mues(self)
         
-    def muplot(self,muestra):
-        pb.plot_fit_mu(self,muestra)
+    def muplot(self,indice_muestra):
+        fig=pb.plot_fit_mu(self,indice_muestra)
+        return fig
 
         
     def fmuplot(self,muestra):
