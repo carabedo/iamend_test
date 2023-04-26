@@ -1,6 +1,6 @@
-from bokeh.io import output_notebook, curdoc  # output_file
+from bokeh.io import output_notebook # output_file
 from bokeh.plotting import figure, show
-from bokeh.layouts import row, column, gridplot
+from bokeh.layouts import  gridplot
 import numpy as np
 import iamend_ci.theo as theo	
 import logging

@@ -3,12 +3,7 @@ import numpy
 import scipy.integrate
 import scipy.special
 import scipy
-from iamend_ci.ax import *
-#################################################################################################
-#################################################################################################
-#################################################################################################
-
-
+from iamend_ci.aux import *
 
 def zo(f,bo,lmax):
     """ Calculo de impedancia en aire (3.34) Zo para una bobina al aire"""

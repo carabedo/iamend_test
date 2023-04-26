@@ -3,7 +3,6 @@ import iamend_ci.theo as theo
 import iamend_ci.fit as fit
 import iamend_ci.so as so
 import iamend_ci.plt as plt
-import iamend_ci.ax as ax
 import iamend_ci.pxplt as px
 import iamend_ci.plotbokeh as pb
 import os
@@ -151,7 +150,7 @@ class exp():
         try:
             if param_geo == 'z1':
              
-                z1eff,uz1eff=fit.z1(self.f,self.coil,dzcorrnorm,esp,sigma,self.files[indice_patron])
+                z1eff,uz1eff=fit.z1(self.f,self.coil,dzcorrnorm,esp,sigma)
 
                 self.z1eff=z1eff[0]
                 self.uz1eff=uz1eff
@@ -178,41 +177,99 @@ class exp():
             print(e)   
             logging.exception("An exception was thrown!")                   
             return False
+        
 
-    def fitmues(self,figs=True):
+    def fitEspesorNc(self,indice_muestras,mur):
+        '''
+        Funcion para ajustar espesores no conductores, sobre placa ferromagnetica
+            indice_muestras (lista): indice de muestras para ajustar el liftoff
+            mur (float): mur de la placa ferromagnetica
+        '''
+        #solo sobre las muestras de la lista de indices
+        yteos={}
+        for i in indice_muestras:
+            row=self.info.iloc[i]
+            esp=row.espesor
+            sigma=row.conductividad
+            dzucorrnorm=self.dznorm[self.dznorm.muestra == row.archivo].dzcorrnorm.values
+            #mu(f,bo_eff,dzucorrnorm,dpatron,sigma, name):
+            fpar,fcov=fit.z1(self.f,self.coil,dzucorrnorm,esp,sigma,mur=mur)
+            self.info.loc[i,'loeff']=fpar
+            self.info.loc[i,'uloeff']=fcov
+            x0=2*np.pi*self.f*self.coil[-1]
+            bob_eff=self.coil.copy()
+            bob_eff[4]=fpar[0]
 
-        if not hasattr(self,'z1eff'):
-            print('Ajustando z1 effectivo')
-            if self.fitpatron():
-                muestras=self.dznorm[self.dznorm.muestra.str.contains('M')].muestra.unique()
-                self.info['mueff']=np.nan
-                self.info['R2']=np.nan
+            yteo=theo.dzD(self.f,bob_eff,sigma,esp,mur,1500)/x0
+            yteos[row.archivo]=yteo
+            if self.test==True:
+                # validacion con test de la parte imaginaria
+                dzucorrnorm_test=self.dznorm_test.iloc[i].dzcorrnorm.values
+                r2=R2(yteo.imag,dzucorrnorm_test.imag)
+                self.info.loc[i,'R2']=r2
+            self.ypreds=yteos
+        return self.info.iloc[indice_muestras]
+    
 
+    def fitmues(self,indice_muestras='all'):
+        '''
+        indice_muestras (lista): indice de muestras para ajustar el mu
+        '''
+        if indice_muestras=='all':
+            #ajusto sobre todas las muestras
+            if not hasattr(self,'z1eff'):
+                print('Ajustando z1 effectivo')
+                if self.fitpatron():
+                    muestras=self.dznorm[self.dznorm.muestra.str.contains('M')].muestra.unique()
+                    self.info['mueff']=np.nan
+                    self.info['R2']=np.nan
+
+                    yteos={}
+                    for x in muestras:
+                        row=self.info[self.info.muestras.str.contains(x)]
+                        esp=row.espesor.values[0]
+                        sigma=row.conductividad.values[0]
+                        dzucorrnorm=self.dznorm[self.dznorm.muestra == x].dzcorrnorm.values
+
+                        #mu(f,bo_eff,dzucorrnorm,dpatron,sigma, name):
+                        fpar,fcov=fit.mu(self.f,self.coil,dzucorrnorm,esp,sigma,row.archivo.values[0])
+                        self.info.loc[row.index.values[0],'mueff']=fpar
+                        x0=2*np.pi*self.f*self.coil[-1]
+                        yteo=theo.dzD(self.f,self.coil,sigma,esp,fpar,1500)/x0
+                        yteos[x]=yteo
+
+                        # validacion con test de la parte imaginaria
+                        dzucorrnorm_test=self.dznorm_test[self.dznorm_test.muestra == x].dzcorrnorm.values
+                        r2=R2(yteo.imag,dzucorrnorm_test.imag)
+                        self.info.loc[row.index.values[0],'R2']=r2
+                    self.ypreds=yteos
+            else:
+                mylist = [self.za['filename_aire'], self.patron_fitgeo['filename']]
+                pattern = '|'.join(mylist)
+                muestras=self.info.archivo[~self.info.archivo.str.contains(pattern)]
                 yteos={}
-                for x in muestras:
-                    row=self.info[self.info.muestras.str.contains(x)]
-                    esp=row.espesor.values[0]
-                    sigma=row.conductividad.values[0]
-                    dzucorrnorm=self.dznorm[self.dznorm.muestra == x].dzcorrnorm.values
-
+                for i in muestras.index:
+                    row=self.info.iloc[i]
+                    esp=row.espesor
+                    sigma=row.conductividad
+                    dzucorrnorm=self.dznorm[self.dznorm.muestra == row.archivo].dzcorrnorm.values
                     #mu(f,bo_eff,dzucorrnorm,dpatron,sigma, name):
-                    fpar,fcov=fit.mu(self.f,self.coil,dzucorrnorm,esp,sigma,row.archivo.values[0])
-                    self.info.loc[row.index.values[0],'mueff']=fpar
+                    fpar,fcov=fit.mu(self.f,self.coil,dzucorrnorm,esp,sigma,row.archivo)
+                    self.info.loc[i,'mueff']=fpar
+                    self.info.loc[i,'umueff']=fcov
                     x0=2*np.pi*self.f*self.coil[-1]
                     yteo=theo.dzD(self.f,self.coil,sigma,esp,fpar,1500)/x0
-                    yteos[x]=yteo
-
-                    # validacion con test de la parte imaginaria
-                    dzucorrnorm_test=self.dznorm_test[self.dznorm_test.muestra == x].dzcorrnorm.values
-                    r2=R2(yteo.imag,dzucorrnorm_test.imag)
-                    self.info.loc[row.index.values[0],'R2']=r2
+                    yteos[row.archivo]=yteo
+                    if self.test==True:
+                        # validacion con test de la parte imaginaria
+                        dzucorrnorm_test=self.dznorm_test[self.dznorm_test.muestra == x].dzcorrnorm.values
+                        r2=R2(yteo.imag,dzucorrnorm_test.imag)
+                        self.info.loc[i,'R2']=r2
                 self.ypreds=yteos
         else:
-            mylist = [self.za['filename_aire'], self.patron_fitgeo['filename']]
-            pattern = '|'.join(mylist)
-            muestras=self.info.archivo[~self.info.archivo.str.contains(pattern)]
+            #solo sobre las muestras de la lista de indices
             yteos={}
-            for i in muestras.index:
+            for i in indice_muestras:
                 row=self.info.iloc[i]
                 esp=row.espesor
                 sigma=row.conductividad
@@ -229,8 +286,9 @@ class exp():
                     dzucorrnorm_test=self.dznorm_test[self.dznorm_test.muestra == x].dzcorrnorm.values
                     r2=R2(yteo.imag,dzucorrnorm_test.imag)
                     self.info.loc[i,'R2']=r2
-            self.ypreds=yteos
-
+                self.ypreds=yteos
+            return self.info.iloc[indice_muestras]
+ 
     def fitfmues(self,*args,**kwargs):
 
         if len(args) == 0:

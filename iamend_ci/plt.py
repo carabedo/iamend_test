@@ -1,8 +1,6 @@
 """ Modulo con funciones para graficar en matplotlib o plotly"""	
-import iamend_ci.theo as theo												
 import numpy as np
 import matplotlib.pyplot as plt
-from bokeh.io import output_notebook, curdoc  # output_file
 from bokeh.plotting import figure, show
 from bokeh.palettes import Spectral4
 

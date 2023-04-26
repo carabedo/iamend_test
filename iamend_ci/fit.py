@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 from plotly.subplots import make_subplots
 
 
-def z1(f,bo,dzucorrnorm,dpatron,sigma,rango):
+def z1(f,bo,dzucorrnorm,dpatron,sigma,mur=1):
     
     """z1 (frecuencia, bobina, datacorr, n, dpatron,sigma, mur)
     Ajuste del lift-off
@@ -22,7 +22,7 @@ def z1(f,bo,dzucorrnorm,dpatron,sigma,rango):
     sigma : float, conductividad muestra
     mur: float, permeabilidad muestra
     """    
-    mur=1
+
 
     def funz1(x,b):
         r1=bo[0]
@@ -40,16 +40,10 @@ def z1(f,bo,dzucorrnorm,dpatron,sigma,rango):
     xmeas=f
     ymeas=dzucorrnorm.imag   
 
-    fpar, fcov=optimize.curve_fit(funz1, xmeas, ymeas, p0=[1.1e-3], bounds=(0,2e-3))
+    fpar, fcov=optimize.curve_fit(funz1, xmeas, ymeas, p0=[1.1e-3], bounds=(0,5e-3))
     print('z1 =',fpar[0]*1000,'mm')
     return fpar,np.sqrt(fcov[0][0])
 
-    # r1=bo[0]
-    # r2=bo[1]
-    # dh=bo[2]
-    # N=bo[3]
-    # z1=bo[4]
-    # l0=bo[5]
 
 
 def r2(f,bo,dzucorrnorm,dpatron,sigma,rango):
@@ -164,6 +158,18 @@ def mu(f,bo_eff,dzucorrnorm,dpatron,sigma, name):
     #nuevo: fcov como output
     return(fpar, np.sqrt(fcov[0][0]))
 
+def muSigma(f,bo_eff,dzucorrnorm,dpatron):
+
+    def funmu(x,a,b):
+        return theo.dzD(x,bo_eff,b,dpatron,a,1500).imag/x0
+
+    l0=bo_eff[-1]    
+    w=2*np.pi*f
+    x0=w*l0    
+    xmeas=f
+    ymeas=dzucorrnorm.imag   
+    fpar, fcov=optimize.curve_fit(funmu, xmeas, ymeas, p0=[1,10e6], bounds=(0,150))
+    return(fpar, fcov)
 
 def fmu(f,coil_eff,n_splits_f,dzcorrnorm,sigma,espesor,name):
     """fmu (frecuencia, bobina, n_splits_f,datacorr,sigma,dpatron, name)
