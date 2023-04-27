@@ -1,0 +1,6 @@
+archivo,conductividad,espesor,bobina,muestras
+Exp_NFNE_d1012.csv,1.0,0.012,pp1,NFNE
+Exp_NFNE_d342.csv,1.0,0.012,pp1,NFNE
+Exp_347-M01.csv,1051184.21,0.02295833333,pp1,347-M01
+Exp_NFNE_d519.csv,1.0,0.012,pp1,NFNE
+Exp_aire_manual.csv,0.0,0.0,pp1,aire

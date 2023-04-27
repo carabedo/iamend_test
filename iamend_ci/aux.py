@@ -70,7 +70,10 @@ def cquad(func, a, b, **kwargs):
 
 
 def sig3(k,sigma1,sigma2,f,d,mur1,mur2):
-    """ funcion auxiliar"""
+    """ funcion auxiliarm figura 3.2 [theo]
+    conductor ferromagnetico 1 de espesor d
+    conductor ferromagnetico 2 de espesor inf
+    """
     mu0 = 4*numpy.pi*1e-7
     k2_1=1j*2*numpy.pi*f*mu0*mur1*sigma1
     k2_2=1j*2*numpy.pi*f*mu0*mur2*sigma2

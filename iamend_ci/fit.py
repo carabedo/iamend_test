@@ -160,15 +160,15 @@ def mu(f,bo_eff,dzucorrnorm,dpatron,sigma, name):
 
 def muSigma(f,bo_eff,dzucorrnorm,dpatron):
 
-    def funmu(x,a,b):
-        return theo.dzD(x,bo_eff,b,dpatron,a,1500).imag/x0
+    def funmu(x,mu,sigma):
+        return theo.dzD(x,bo_eff,sigma,dpatron,mu,1500).imag/x0
 
     l0=bo_eff[-1]    
     w=2*np.pi*f
     x0=w*l0    
     xmeas=f
     ymeas=dzucorrnorm.imag   
-    fpar, fcov=optimize.curve_fit(funmu, xmeas, ymeas, p0=[1,10e6], bounds=(0,150))
+    fpar, fcov=optimize.curve_fit(funmu, xmeas, ymeas, p0=[5,1e6], bounds=[[1,0.1e6],[10,2e6]])
     return(fpar, fcov)
 
 def fmu(f,coil_eff,n_splits_f,dzcorrnorm,sigma,espesor,name):
@@ -213,7 +213,8 @@ def fmu(f,coil_eff,n_splits_f,dzcorrnorm,sigma,espesor,name):
     }          
     return datafmu
 
-
+def mu2layers(exp,layer1,layer2):
+    pass
 
 
 # matplotlib
@@ -238,7 +239,7 @@ def imlogfit(f,data,para_eff,name,savefile=0):
         plt.savefig(fname)   
     return fig
 
-
+# 
 
 # plotly
 def pxlogfit(x,Y,titulo):
