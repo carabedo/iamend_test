@@ -23,7 +23,7 @@ con:
 
 
 
-### carga  y correccion datos
+### Carga y correccion datos
 
 Cada experimento debe constar de:
 
@@ -61,7 +61,7 @@ bo=ci.bo.bobpp1
 datacorr=ci.so.corr(f,bo,data)
 ```
 
-### grafico datos
+### Grafico datos
 
 ```python
 # ploteo de la parte imaginaria de la impedancia corregida (parametros: x,Y,n= id medicion )
@@ -70,9 +70,9 @@ ci.plt.im(f,datacorr,1)
 
 ![](/imgs/1.png)
 
-### ajuste permeabilidad
+### Ajuste permeabilidad
 
-#### parametros geometricos efectivos
+#### Parametros geometricos efectivos
 
 ```phyton
 dp=15e-3
@@ -82,13 +82,13 @@ mup=1
 z1eff,figz1=ci.fit.z1(f,bo,datacorr,0,dp,sig,mup)
 ```
 
-#### permeabilidad relativa efectiva
+#### Permeabilidad relativa efectiva
 
 ```python
 mueff,pltmu=ci.fit.mu(f,bo,datacorr,1,4e6,z1eff)
 ```
 
-### densidad de corriente
+### Densidad de corriente
 
 
 
