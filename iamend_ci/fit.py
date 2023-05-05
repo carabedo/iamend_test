@@ -71,7 +71,7 @@ def r2(f,bo,dzucorrnorm,dpatron,sigma,rango):
         z1=bo[4]
         bob=[r1,r2,dh,N,z1,1]
         return theo.dzD(x,bob,sigma,dpatron,mur,3000).imag/x0
-    #[f,z0,dzucorr,w]
+
     l0=bo[-1]
     w=2*np.pi*f
     x0=w*l0
@@ -104,7 +104,6 @@ def N(f,bo,dzucorrnorm,espesorpatron,sigmapatron,rango):
         z1=bo[4]
         bob_eff=[r1,r2,dh,N,z1,bo[5]]
         return theo.dzD(x,bob_eff,sigmapatron,espesorpatron,mupatron,3000).imag/x0
-    #[f,z0,dzucorr,w]
     l0=bo[-1]
     w=2*np.pi*f
     x0=w*l0
@@ -148,14 +147,6 @@ def mu(f,bo_eff,dzucorrnorm,dpatron,sigma, name):
     xmeas=f
     ymeas=dzucorrnorm.imag   
     fpar, fcov=optimize.curve_fit(funmu, xmeas, ymeas, p0=[1], bounds=(0,150))
-    # mur=fpar[0]
-    # yteo=theo.dzD(f,bo_eff,sigma,dpatron,mur,1500)
-    # yteo=yteo.imag/x0
-    # para_eff={'name' : 'mu_r', 'value' : mur}
-    #fig=imlogfit(f,[ymeas, yteo],para_eff,name)
-    #print('mu_r_eff =',fpar[0])
-
-    #nuevo: fcov como output
     return(fpar, np.sqrt(fcov[0][0]))
 
 def muSigma(f,bo_eff,dzucorrnorm,dpatron):

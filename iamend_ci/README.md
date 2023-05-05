@@ -25,17 +25,33 @@ con:
 
 ### carga  y correccion datos
 
+Cada experimento debe constar de:
 
+- una medicion en aire, para el la correcion de los efectos no ideales.
+- una medicion en un patron de mu,sigma y espesor conocido, para el ajuste de los parametros geometricos de la bobina.
+- mediciones en patrones donde se busque ajustar algun parametro.
+- todos los archivos deben estar en la misma carpeta
+- la carpeta debe contener un archivo `info.cv` con la informacion de cada archivo.
+
+Ejemplo de `info.csv`:
+
+```
+archivo,conductividad,espesor,bobina,muestras
+Exp_aire.csv,0.0,0.0,pp1,aire
+Exp_1010-M01.csv,3830000.0,0.065,pp1,1010-M01
+Exp_P066.csv,610200.0,0.14957,pp1,P066
+```
+En este experimento, el archivo `Exp_aire.csv` es la medicion en aire. `Exp_P066.csv` es la medicion sobre el patron y `Exp_1010-M01.csv` es la medicion sobre la muestra a caracterizar. El nombre de la muestra esta separado por `_`. Las nombres de las muestras siguen la siguiente forma `MATERIAL-MUESTRA`.
+
+
+Para cargar todos los archivos de un experimento usamos la clase `Exp`, la cual inicializamos con la ruta de la carpeta que contiene los datos:
 
 ```python
 
-
 import iamend_ci as ci
 
-data=ci.so.load('carpeta con mediciones')
-
+exp=ci.exp('.//iamend_ci//datos//pp1_manual//')
 # lee las frecuencias utilizadas en el experimento
-
 f=ci.so.getf(data)
 
 # carga los parametros geometricos de la bobina

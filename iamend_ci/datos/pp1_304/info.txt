@@ -1,5 +1,5 @@
-archivo,conductividad,espesor,bobina
-pp1_304\Exp_304_Aire.csv,0,0,pp1
-pp1_304\Exp_304_M04.csv,0,0,pp1
-pp1_304\Exp_304_M06.csv,0,0,pp1
-pp1_304\Exp_304_P057.csv,0,0,pp1
+archivo,conductividad,espesor,bobina,muestras
+Exp_304-M04.csv,1060000.0,0.023119999999999998,pp1,304-M04
+Exp_304-M06.csv,1240000.0,0.022799999999999997,pp1,304-M06
+Exp_Aire.csv,0.0,0.0,pp1,aire
+Exp_P057.csv,3948000.0,0.14957,pp1,P057

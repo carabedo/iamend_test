@@ -4,7 +4,7 @@ import plotly.express as px
 import numpy as np
 #esto sirve para no tener daramas con el path en windows/unix
 from pathlib import Path #falta implementar
-
+import traceback
 
 def read(file, separador):
     # lee archivo csv del solatron
@@ -96,13 +96,11 @@ def corrnorm_dict(exp,test=True,dropfirst=True):
     x0=w*exp.bobina['L0']  
     try:
         # correccion muestras
-        filename_aire=exp.info.archivo[exp.info.archivo.str.contains('aire')].values[0]
+        filename_aire=exp.info.archivo[exp.info.archivo.str.contains('aire',case=False)].values[0]
         za=data_mean[filename_aire]
-
         datacorrnorm={}
         datacorrnorm_test={}
         filename_muestras=[x for x in data_mean.keys() if not filename_aire in x]
-
         for m,filename_muestra in enumerate(filename_muestras):
             z_mean=data_mean[filename_muestra]
             zu=z_mean
@@ -120,8 +118,9 @@ def corrnorm_dict(exp,test=True,dropfirst=True):
             return datacorrnorm,data_test,datacorrnorm_test,medicion_aire
         else:
             return datacorrnorm,medicion_aire
-    except:
-        print('No se encontro archivo con medicion en aire. chau')
+    except Exception as e:
+        print(e)
+
 
 
 

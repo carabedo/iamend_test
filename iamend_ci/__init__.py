@@ -5,6 +5,7 @@ import iamend_ci.so as so
 import iamend_ci.plt as plt
 import iamend_ci.pxplt as px
 import iamend_ci.plotbokeh as pb
+import iamend_ci.tools as tools
 import os
 import pandas as pd
 import numpy as np
@@ -13,6 +14,7 @@ import plotly.express as px
 from pathlib import Path
 from sklearn.metrics import r2_score as R2
 import logging
+import traceback
 
 # definicion de la clase 'exp'
 
@@ -20,7 +22,7 @@ class exp():
     ''' Clase Experimentos:
     Se instancian con el nombre de la carpeta donde estan los archivos del solatron. Un carpeta para cada bobina, todo el experimento necesita una medicion en aire. Medicion en un patron para el ajuste efectivo del lift-off.
     '''
-    def __init__(self,path,normcorr=True,test=True,dropfirst=True):
+    def __init__(self,path,normcorr=True,test=False,dropfirst=True):
         self.path=path
         try:
             infopath=[x for x in os.listdir(path) if 'info' in x][0]
@@ -30,12 +32,6 @@ class exp():
 
             self.info=info
             self.files=info.iloc[:,0]
-
-            # self.info['muestras']=self.info.archivo.apply(lambda x: get_id(x))
-            # #lo haria URL
-            # muestras=pd.read_csv('./iamend_ci/muestras.csv')
-            # self.info.conductividad=self.info.muestras.apply(lambda x: get_sigma(x,muestras))
-            # self.info.espesor=self.info.muestras.apply(lambda x: get_esp(x,muestras))
 
             if len(info.bobina.unique()) == 1: 
                 try:            
@@ -65,14 +61,14 @@ class exp():
                 setattr(self,'df'+ str(i),df_ci)
 
             if normcorr==True:
-                self.normcorr_dict(test=test,dropfirst=dropfirst)
+                self.normcorr(test=test,dropfirst=dropfirst)
 
         except Exception as e:
-            print('No se pudieron cargar los archivos. Error: ', e)
+            print("There was an error: " + e.args[0] + ". The line where the code failed was " + str(traceback.extract_stack()[-1][1]))
 
 
 
-    def normcorr_dict(self,test=True,dropfirst=True):
+    def normcorr(self,test=True,dropfirst=True):
         '''
         Metodo que corrije las mediciones utilizando el benchmark harrison(xxxx)
         '''
@@ -114,9 +110,9 @@ class exp():
                 self.dznorm=dfdz
                 self.test=False
 
-
         except Exception as e:
-            print(e)
+            print("There was an error: " + e.args[0] + ". The line where the code failed was " + str(traceback.extract_stack()[-1][1]))
+
 
     def set_frange(self,f_inicial,f_final):
         # redifinimos f
@@ -226,7 +222,8 @@ class exp():
 
                     yteos={}
                     for x in muestras:
-                        row=self.info[self.info.muestras.str.contains(x)]
+                        print('Ajustando mur',x)
+                        row=self.info[self.info.archivo.str.contains(x,case=False)]
                         esp=row.espesor.values[0]
                         sigma=row.conductividad.values[0]
                         dzucorrnorm=self.dznorm[self.dznorm.muestra == x].dzcorrnorm.values
@@ -239,9 +236,10 @@ class exp():
                         yteos[x]=yteo
 
                         # validacion con test de la parte imaginaria
-                        dzucorrnorm_test=self.dznorm_test[self.dznorm_test.muestra == x].dzcorrnorm.values
-                        r2=R2(yteo.imag,dzucorrnorm_test.imag)
-                        self.info.loc[row.index.values[0],'R2']=r2
+                        if self.test == True:
+                            dzucorrnorm_test=self.dznorm_test[self.dznorm_test.muestra == x].dzcorrnorm.values
+                            r2=R2(yteo.imag,dzucorrnorm_test.imag)
+                            self.info.loc[row.index.values[0],'R2']=r2
                     self.ypreds=yteos
             else:
                 mylist = [self.za['filename_aire'], self.patron_fitgeo['filename']]
@@ -249,7 +247,9 @@ class exp():
                 muestras=self.info.archivo[~self.info.archivo.str.contains(pattern)]
                 yteos={}
                 for i in muestras.index:
+
                     row=self.info.iloc[i]
+                    print('Ajustando mur',row.archivo)
                     esp=row.espesor
                     sigma=row.conductividad
                     dzucorrnorm=self.dznorm[self.dznorm.muestra == row.archivo].dzcorrnorm.values
@@ -262,7 +262,7 @@ class exp():
                     yteos[row.archivo]=yteo
                     if self.test==True:
                         # validacion con test de la parte imaginaria
-                        dzucorrnorm_test=self.dznorm_test[self.dznorm_test.muestra == x].dzcorrnorm.values
+                        dzucorrnorm_test=self.dznorm_test[self.dznorm_test.muestra == row.archivo].dzcorrnorm.values
                         r2=R2(yteo.imag,dzucorrnorm_test.imag)
                         self.info.loc[i,'R2']=r2
                 self.ypreds=yteos
@@ -271,6 +271,7 @@ class exp():
             yteos={}
             for i in indice_muestras:
                 row=self.info.iloc[i]
+                print('Ajustando mur',row.archivo)
                 esp=row.espesor
                 sigma=row.conductividad
                 dzucorrnorm=self.dznorm[self.dznorm.muestra == row.archivo].dzcorrnorm.values
@@ -283,7 +284,7 @@ class exp():
                 yteos[row.archivo]=yteo
                 if self.test==True:
                     # validacion con test de la parte imaginaria
-                    dzucorrnorm_test=self.dznorm_test[self.dznorm_test.muestra == x].dzcorrnorm.values
+                    dzucorrnorm_test=self.dznorm_test[self.dznorm_test.muestra == row.archivo].dzcorrnorm.values
                     r2=R2(yteo.imag,dzucorrnorm_test.imag)
                     self.info.loc[i,'R2']=r2
                 self.ypreds=yteos
@@ -301,7 +302,7 @@ class exp():
             fmu_fits={}
             for i,x in enumerate(muestras):
                 name=x
-                row=self.info[self.info.muestras.str.contains(x)]
+                row=self.info[self.info.archivo.str.contains(x)]
                 espesor=row.espesor.values[0]
                 sigma=row.conductividad.values[0]
                 dzucorrnorm=self.dznorm[self.dznorm.muestra == x].dzcorrnorm.values
@@ -415,27 +416,3 @@ def get_esp(x,muestras):
     except:   
         return 0        
     
-## LEGACY
-
-    # def normcorr(self):
-    #     '''
-    #     Metodo que corrije las mediciones utilizando el benchmark harrison(xxxx)
-    #     '''
-    #     try:
-    #         index_file_aire=self.files.index[self.files.str.lower().str.contains('aire')].values[0]
-    #         self.index_aire=index_file_aire
-    #         self.file_aire=self.files[index_file_aire]
-    #         # diccionario con las variaciones de impedancias
-    #         # corregidas y normalizadas (re + 1j imag)
-    #         dict_dzcorrnorm,data_test=so.corrnorm(self,index_file_aire)
-    #         self.data_test=data_test
-    #         df=pd.DataFrame(dict_dzcorrnorm)
-    #         df['f']=self.f
-    #         dfdz=pd.melt(df,id_vars=df.columns[-1], var_name='muestra',value_name='dzcorrnorm')
-    #         dfdz['imag']=np.imag(dfdz['dzcorrnorm'])
-    #         dfdz['real']=np.real(dfdz['dzcorrnorm'])
-    #         dfdz['muestra']=dfdz['muestra'].astype(int).map(pd.Series(self.files))
-    #         dfdz['muestra']=dfdz['muestra'].apply(lambda x: x.split('_')[-1].split('.')[0])
-    #         self.dznorm=dfdz
-    #     except:
-    #         print('Falta el archivo con la medicion de la impedancia en aire.')
