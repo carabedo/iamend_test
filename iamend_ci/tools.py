@@ -56,3 +56,10 @@ def get_info(path,bobina=None):
         data.to_csv(path+'info.txt',index=False)
     else:
         print('No se encontraron archivos, revise la ruta.')
+
+
+
+def lista_mediciones():
+    rootdir = './iamend_ci/datos/'
+    for path in glob.glob(f'{rootdir}/*/'):
+        print(path)

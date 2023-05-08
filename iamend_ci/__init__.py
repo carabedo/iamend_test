@@ -129,7 +129,7 @@ class exp():
 
 
     # Ajustes
-    def fitpatron(self,patron_filename='auto',param_geo='z1',plot=False, rango = None):
+    def fitPatron(self,patron_filename='auto',param_geo='z1',plot=False, rango = None):
 
         if patron_filename=='auto':
             indice_patron=self.info[self.info.muestras.str.startswith('P')].iloc[0].name
@@ -165,7 +165,7 @@ class exp():
                 self.coil[1]=self.r2eff
 
             if plot == True:
-                pb.plot_fit_patron(self,param_geo,patron_filename)
+                pb.plot_fit_patron(self,param_geo,indice_patron)
 
             return True
         
@@ -207,7 +207,7 @@ class exp():
         return self.info.iloc[indice_muestras]
     
 
-    def fitmues(self,indice_muestras='all'):
+    def fitMues(self,indice_muestras='all'):
         '''
         indice_muestras (lista): indice de muestras para ajustar el mu
         '''
@@ -290,7 +290,7 @@ class exp():
                 self.ypreds=yteos
             return self.info.iloc[indice_muestras]
  
-    def fitfmues(self,*args,**kwargs):
+    def fitfMues(self,*args,**kwargs):
 
         if len(args) == 0:
             pass
@@ -340,17 +340,24 @@ class exp():
     # ploteos
 
     def implots(self):
-        px.line(self.dznorm,x='f',y='imag',color='muestra',log_x=True)
+        fig=px.line(self.dznorm,x='f',y='imag',color='muestra',log_x=True)
+        fig.show()
 
     def replots(self):
-        px.line(self.dznorm,x='f',y='real',color='muestra',log_x=True)
+        fig=px.line(self.dznorm,x='f',y='real',color='muestra',log_x=True)
+        fig.show()
 
 
-    def im(self,n):
-        plt.im(self.dznorm[n+1],self.f,self.files[n+1])
 
-    def re(self,n):
-        plt.re(self.dznorm[n+1],self.f,self.files[n+1])
+    def implot(self,n):
+        archivo=self.info.iloc[n].archivo
+        y=self.dznorm[self.dznorm.muestra== self.info.iloc[1].archivo]
+        plt.im(y,self.f,archivo)
+
+    def replot(self,n):
+        archivo=self.info.iloc[n].archivo
+        y=self.dznorm[self.dznorm.muestra== self.info.iloc[1].archivo]
+        plt.re(y,self.f,archivo)
 
 
     def muesplot(self):

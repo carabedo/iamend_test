@@ -7,7 +7,7 @@ import logging
 
 output_notebook()
 
-def plot_fit_patron(exp,param_geo,patron_filename):
+def plot_fit_patron(exp,param_geo,indice_patron):
     altura=500
     ancho=600
     tool_list = ['box_zoom', 'reset']
@@ -17,7 +17,7 @@ def plot_fit_patron(exp,param_geo,patron_filename):
     w=2*np.pi*x
     x0=w*l0
     try:
-        indice_patron=exp.info.query('archivo=="'+patron_filename+'"').index[0]
+        patron_filename=exp.info.iloc[indice_patron].archivo
         ymeas=exp.dznorm[exp.dznorm.muestra == patron_filename].imag.values
         espesorpatron=exp.info.espesor.iloc[indice_patron]
         sigmapatron=exp.info.conductividad.iloc[indice_patron]
