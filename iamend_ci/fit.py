@@ -159,7 +159,8 @@ def muSigma(f,bo_eff,dzucorrnorm,dpatron):
     x0=w*l0    
     xmeas=f
     ymeas=dzucorrnorm.imag   
-    fpar, fcov=optimize.curve_fit(funmu, xmeas, ymeas, p0=[5,1e6], bounds=[[1,0.1e6],[10,2e6]])
+    fpar, fcov=optimize.curve_fit(funmu, xmeas, ymeas, 
+                                  p0=[5,1e6], bounds=[[1,0.1e6],[10,2e6]])
     return(fpar, fcov)
 
 def fmu(f,coil_eff,n_splits_f,dzcorrnorm,sigma,espesor,name):
