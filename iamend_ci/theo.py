@@ -64,10 +64,14 @@ def dzD(f,bo,sigma,d,mur,lmax):
 
 
 
-def dz2layers(f,bo,sigma1,sigma2,d,mur1,mur2,lmax):
+def dz2capas(f,bo,sigma1,sigma2,d,mur1,mur2,lmax):
     """ Calculo de impedancia im(dz) para dos layers 
-    - conductor ferromagnetico 1 de espesor d
-    - conductor ferromagnetico 2 de espesor inf
+
+    capa superior capa 1:
+        - conductor ferromagnetico 1 de espesor d
+    capa inferior capa 2:
+        - conductor ferromagnetico 2 de espesor inf
+        
     """
 
     dzD=list()

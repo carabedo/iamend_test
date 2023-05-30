@@ -160,73 +160,17 @@ def stats_dict(exp,test=True,dropfirst=True):
 
 
 
-def corrnorm(exp,filename_muestra,repeticion,dropfirst,test=False):
-    data_mean,data_std,data_test=stats_dict(exp,test=test,dropfirst=dropfirst)
+def corrnorm(exp,filename_muestra,repeticion):
     w=np.pi*2*exp.f
     z0=exp.bobina['R0']+1j*w*exp.bobina['L0']
-    x0=w*exp.bobina['L0']  
-    try:
-        filename_aire=exp.info.archivo[exp.info.archivo.str.contains('aire')].values[0]
-        za=data_mean[filename_aire]
-        indice_muestra=exp.info[exp.info.archivo == filename_muestra].index.values[0]
-        df_muestra=exp.data[indice_muestra]
-        df_repeticion=df_muestra[df_muestra.repeticion == repeticion]
-        zu_serie=df_repeticion.real + 1j*df_repeticion.imag
-        zu=zu_serie.values
-        dzucorr=((1/(1/zu - 1/za+ 1/z0))-z0  )				
-        dzucorrnorm=dzucorr/x0
-        return dzucorrnorm
-    except Exception as e:
-        print(e)
+    x0=exp.x0
+    za=exp.za['za']
+    indice_muestra=exp.info[exp.info.archivo == filename_muestra].index.values[0]
+    df_muestra=exp.data[indice_muestra]
+    df_repeticion=df_muestra[df_muestra.repeticion == repeticion]
+    zu_serie=df_repeticion.real + 1j*df_repeticion.imag
+    zu=zu_serie.values
+    dzucorr=((1/(1/zu - 1/za+ 1/z0))-z0  )
+    dzucorrnorm=dzucorr/x0
+    return dzucorrnorm
 
-
-###### LEGACY
-
-# def stats(exp):
-#     ''' excluyendo la primer repeticion para cada muestra devuelve lista de valores medios por f y sus desvios'''
-#     data_mean=[]
-#     data_std=[]
-#     data_test=[]
-
-#     for m,datamuestra_m in enumerate(exp.data):
-#         #excluimos la primer repeticion
-#         df=datamuestra_m[datamuestra_m.repeticion != 1 ]
-#         #separamos de manera aleatoria un valor de impedancia para cada frecuencia
-#         df_test=df.groupby('f').sample(1)
-
-#         #boramos del dataset original esos valores
-#         df.loc[df_test.index,'imag']=np.nan
-#         #calculamos mean y std 
-#         real_mean=df.groupby('f')['real'].mean().values
-#         imag_mean=df.groupby('f')['imag'].mean().values
-#         real_std=df.groupby('f')['real'].std().values
-#         imag_std=df.groupby('f')['imag'].std().values
-
-#         data_mean.append(real_mean+1j*imag_mean)
-#         data_std.append(real_std+1j*imag_std)
-#         data_test.append(df_test)
-
-#     return data_mean,data_std,data_test
-
-
-# def corrnorm(exp,index_file_aire):
-#     """ corrige y normaliza los datos, toma como input el vector de frecuencias, la info de la bobina y los datos
-#         devuelve una lista de arrays, cada array es la impedancia compleja corregida y normalizada para cada frecuencia, parte real y parte imaginaria
-#         para recuperar la parte real  (.real) e imaginaria (.imag)
-        
-#         z=re+i*2pi*f*l0
-#     """ 
-#     lista_z_mean,data_std,data_test=stats(exp)
-#     w=np.pi*2*exp.f
-    
-#     z0=exp.bobina['R0']+1j*w*exp.bobina['L0']
-#     x0=w*exp.bobina['L0']  
-
-#     za=lista_z_mean[index_file_aire]
-#     datacorrnorm={}
-#     for m,z_mean in enumerate(lista_z_mean):
-#         if m != index_file_aire:
-#             zu=z_mean
-#             dzucorr=((1/(1/zu - 1/za+ 1/z0))-z0  )				
-#             datacorrnorm[str(m)]=dzucorr/x0
-#     return datacorrnorm,data_test

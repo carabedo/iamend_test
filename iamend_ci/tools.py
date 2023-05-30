@@ -1,7 +1,7 @@
 import glob
 import sys
 import pandas as pd
-
+import numpy as np
 
 def get_info(path,bobina=None):
     print('folder: '+path)
@@ -18,7 +18,7 @@ def get_info(path,bobina=None):
                 print('Defina la bobina usada en el experimento.')
 
         for x in csv_files:
-            lines.append([x, '0' , '0' ,bobina])
+            lines.append([x, np.nan , np.nan ,np.nan,bobina])
         def get_id(x):
             if 'aire'in x.lower():
                 return 'aire'
@@ -40,18 +40,24 @@ def get_info(path,bobina=None):
                 return muestras[muestras.nombre==x].conductividad.values[0]
             except:   
                 return 0 
-        def get_esp(x,muestras):
+        def get_espesor(x,muestras):
             try:
                 return muestras[muestras.nombre==x].espesor.values[0]*10e-3
             except:   
                 return 0       
-
+        def get_permeabilidad(x,muestras):
+            try:
+                return muestras[muestras.nombre==x].permeabilidad.values[0]
+            except:   
+                return 0     
+            
         data=pd.DataFrame(lines)
-        data.columns=['archivo','conductividad','espesor','bobina']
+        data.columns=['archivo','conductividad','permeabilidad','espesor','bobina']
         data['muestras']=data.archivo.apply(lambda x: get_id(x))
-        muestras=pd.read_csv('./iamend_ci/muestras2.csv')
+        muestras=pd.read_csv('./iamend_ci/datos/muestras.csv')
         data.conductividad=data.muestras.apply(lambda x: get_sigma(x,muestras))
-        data.espesor=data.muestras.apply(lambda x: get_esp(x,muestras))
+        data.espesor=data.muestras.apply(lambda x: get_espesor(x,muestras))
+        data.permeabilidad=data.muestras.apply(lambda x: get_permeabilidad(x,muestras))
         data=data.sort_values('archivo')
         data.to_csv(path+'info.txt',index=False)
     else:
